@@ -222,3 +222,4 @@ __marimo__/
 *.xlsx
 *.db
 .env
+data/
