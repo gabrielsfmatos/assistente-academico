@@ -9,7 +9,7 @@ from scripts.import_xlsx import normalize, parse_attendance_cell, parse_time_ran
         (True, {"attended": True}),
         (False, {"attended": False}),
         ("S/ AULA", {"attended": True, "cancelled": True}),
-        ("PROVA", {"attended": True, "has_exam": True}),
+        ("PROVA", {"attended": True, "exam": True}),
         ("TESTE", {"attended": True, "has_quiz": True}),
         (None, None),
         (" ", None),

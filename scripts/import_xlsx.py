@@ -19,9 +19,9 @@ from openpyxl.utils import column_index_from_string
 from sqlmodel import select
 
 from app.db import DB_PATH, get_engine, get_session, init_db
-from app.models import HOME_PROGRAM, Assessment, ClassSession, Course, ScheduleSlot
+from app.models import Assessment, ClassSession, Course, CourseStatus, ScheduleSlot
 from app.services.attendance import compute_summary
-from app.services.grades import compute_cr, cr_by_term
+from app.services.grades import APPROVAL_GRADE, compute_cr, cr_by_term
 
 # Siglas usadas na grade de horários -> nome da disciplina.
 CODE_TO_NAME = {
@@ -46,7 +46,9 @@ def parse_attendance_cell(value) -> dict | None:
     """Converte uma célula do Faltômetro nos campos de ClassSession.
 
     Retorna None quando não há aula no dia (célula vazia ou só espaços).
-    Prova e teste viram presença + flag (regra: tudo é presença ou falta).
+    Prova e teste viram presença (regra: tudo é presença ou falta).
+    A chave "exam" não é campo da aula: indica ao importador que aquele
+    dia tem prova, que vira um registro em Assessment (fonte única da data).
     """
     if value is None or (isinstance(value, str) and not value.strip()):
         return None
@@ -58,7 +60,7 @@ def parse_attendance_cell(value) -> dict | None:
     if text == "S/ AULA":
         return {"attended": True, "cancelled": True}
     if text == "PROVA":
-        return {"attended": True, "has_exam": True}
+        return {"attended": True, "exam": True}
     if text == "TESTE":
         return {"attended": True, "has_quiz": True}
     raise ValueError(f"Valor não reconhecido no Faltômetro: {value!r}")
@@ -103,11 +105,19 @@ def import_cr_sheet(ws, report: list[str]) -> list[Course]:
             continue
         grade = ws.cell(row, 3).value
         credits = ws.cell(row, 4).value
+        final_grade = float(grade) if grade is not None else None
+        if final_grade is None:
+            status = CourseStatus.IN_PROGRESS
+        elif final_grade >= APPROVAL_GRADE:
+            status = CourseStatus.PASSED
+        else:
+            status = CourseStatus.FAILED
         course = Course(
             name=str(name).strip(),
             term=current_term,
             credits=float(credits or 0),
-            final_grade=float(grade) if grade is not None else None,
+            final_grade=final_grade,
+            status=status,
         )
         row_of[id(course)] = row
         courses.append(course)
@@ -131,6 +141,7 @@ def import_attendance_sheet(ws, by_name: dict, report: list[str]):
     }
     last_date_col = max(date_cols)
     sessions_by_course: dict[str, list[ClassSession]] = {}
+    exam_days_by_course: dict[str, list[date]] = {}
     prova_rule: dict[str, bool] = {}
 
     for row in range(4, ws.max_row + 1):
@@ -152,6 +163,8 @@ def import_attendance_sheet(ws, by_name: dict, report: list[str]):
                 blank_strings.append(day)
             fields = parse_attendance_cell(value)
             if fields is not None:
+                if fields.pop("exam", False):
+                    exam_days_by_course.setdefault(key, []).append(day)
                 sessions.append(ClassSession(day=day, **fields))
         sessions_by_course[key] = sessions
 
@@ -191,7 +204,7 @@ def import_attendance_sheet(ws, by_name: dict, report: list[str]):
             "- Regra de PROVA inconsistente: conta como presença em "
             f"{', '.join(counts_exam)}, mas não em {', '.join(ignores_exam)}."
         )
-    return sessions_by_course, last_date_col
+    return sessions_by_course, exam_days_by_course, last_date_col
 
 
 def import_schedule_and_exams(ws, by_name: dict, report: list[str]):
@@ -253,7 +266,7 @@ def run(xlsx_path: Path, reset: bool) -> None:
 
         courses = import_cr_sheet(wb["Calculadora de CR"], report)
         by_name = {normalize(c.name): c for c in courses}
-        sessions_by_course, last_col = import_attendance_sheet(
+        sessions_by_course, exam_days_by_course, last_col = import_attendance_sheet(
             wb["Faltômetro"], by_name, report
         )
         slots, exams = import_schedule_and_exams(wb["Horário e Datas"], by_name, report)
@@ -272,6 +285,17 @@ def run(xlsx_path: Path, reset: bool) -> None:
         for course, exam in exams:
             exam.course_id = course.id
             db.add(exam)
+        # Dias marcados como PROVA no Faltômetro viram avaliações, se a
+        # tabela de provas ainda não tiver uma avaliação nesse dia.
+        for c in courses:
+            known = {e.day for course, e in exams if course is c}
+            for i, day in enumerate(exam_days_by_course.get(normalize(c.name), []), start=1):
+                if day not in known:
+                    db.add(Assessment(course_id=c.id, name=f"Prova {day:%d/%m}", day=day))
+                    report.append(
+                        f"- **{c.name}**: PROVA em {day:%d/%m} no Faltômetro, mas fora da "
+                        "tabela de provas. Cadastrada como avaliação."
+                    )
         db.commit()
 
         # ---- conferência: aulas em dias que não batem com a grade

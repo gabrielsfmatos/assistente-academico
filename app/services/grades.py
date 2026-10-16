@@ -6,18 +6,19 @@ Regras (definidas por Gabriel / normas da UNIRIO):
 - Aprovação: média >= 7 e, se a disciplina cobra frequência, >= 75%.
 - CR = média das notas ponderada pelos créditos, só com disciplinas
   cursadas no curso da casa (HOME_PROGRAM). Ex.: Cálculo II, cursada em
-  Engenharia de Produção, não entra.
+  Engenharia de Produção, não entra. Disciplinas trancadas também não.
 - Truncamento (igual à planilha): CR acumulado com 4 casas, CR do
   período com 2 casas, sempre arredondando para baixo.
 """
 
 from collections import defaultdict
+from dataclasses import dataclass, field
 from decimal import ROUND_DOWN, Decimal
 from typing import Iterable, Mapping, Optional
 
 from sqlmodel import Session, select
 
-from app.models import HOME_PROGRAM, Course
+from app.models import HOME_PROGRAM, Course, CourseStatus
 
 APPROVAL_GRADE = 7.0
 CR_PLACES = 4
@@ -28,20 +29,22 @@ def truncate(value: Decimal, places: int) -> Decimal:
     return value.quantize(Decimal(1).scaleb(-places), rounding=ROUND_DOWN)
 
 
+def counts_for_cr(course: Course) -> bool:
+    return course.program == HOME_PROGRAM and course.status != CourseStatus.DROPPED
+
+
 def weighted_average(
     courses: Iterable[Course],
     places: int,
     overrides: Optional[Mapping[int, float]] = None,
 ) -> Optional[Decimal]:
-    """Média ponderada por créditos, ignorando disciplinas sem nota e de outro curso.
-
-    `overrides` permite simular notas: {course_id: nota_hipotetica}.
-    """
+    """Média ponderada por créditos, ignorando disciplinas sem nota, de outro
+    curso ou trancadas. `overrides` permite simular notas: {course_id: nota}."""
     overrides = overrides or {}
     total_points = Decimal(0)
     total_credits = Decimal(0)
     for c in courses:
-        if c.program != HOME_PROGRAM:
+        if not counts_for_cr(c):
             continue
         grade = overrides.get(c.id, c.final_grade) if c.id is not None else c.final_grade
         if grade is None:
@@ -81,25 +84,37 @@ def is_approved(final_grade: Optional[float], attendance_ok: bool = True) -> Opt
 # ---------- Funções que acessam o banco ----------
 
 
+@dataclass
+class CRSimulation:
+    scope: str  # "acumulado" | "periodo"
+    cr: Optional[Decimal]
+    missing: list[str] = field(default_factory=list)  # disciplinas do período sem nota
+
+
 def current_cr(db: Session) -> Optional[Decimal]:
     return compute_cr(db.exec(select(Course)).all())
 
 
-def simulate_cr(db: Session, hypothetical: Mapping[int, float]) -> Optional[Decimal]:
-    """CR se as disciplinas em `hypothetical` fechassem com essas notas."""
+def simulate_cr(
+    db: Session, hypothetical: Mapping[int, float], scope: str = "acumulado"
+) -> CRSimulation:
+    """CR se as disciplinas em `hypothetical` fechassem com essas notas.
+
+    Se alguma disciplina do período atual ficou sem nota (nem lançada nem
+    simulada), o cálculo segue sem ela e a lista `missing` avisa quais foram.
+    """
+    if scope not in {"acumulado", "periodo"}:
+        raise ValueError("scope deve ser 'acumulado' ou 'periodo'.")
     for grade in hypothetical.values():
         validate_grade(grade)
-    return compute_cr(db.exec(select(Course)).all(), overrides=hypothetical)
 
+    courses = db.exec(select(Course)).all()
+    term = max((c.term for c in courses), default=None)
+    current = [c for c in courses if c.term == term and counts_for_cr(c)]
+    missing = [c.name for c in current if c.final_grade is None and c.id not in hypothetical]
 
-def set_final_grade(db: Session, course_id: int, grade: Optional[float]) -> Course:
-    if grade is not None:
-        validate_grade(grade)
-    course = db.get(Course, course_id)
-    if course is None:
-        raise ValueError(f"Disciplina {course_id} não encontrada.")
-    course.final_grade = grade
-    db.add(course)
-    db.commit()
-    db.refresh(course)
-    return course
+    if scope == "periodo":
+        cr = weighted_average(current, TERM_CR_PLACES, hypothetical)
+    else:
+        cr = compute_cr(courses, overrides=hypothetical)
+    return CRSimulation(scope=scope, cr=cr, missing=sorted(missing))

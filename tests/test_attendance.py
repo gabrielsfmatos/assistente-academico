@@ -1,11 +1,13 @@
 from datetime import date, timedelta
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
 
-from app.models import ClassSession, Course
+from app.models import ClassSession
 from app.services.attendance import (
+    NoClassError,
+    cancel_day,
     compute_summary,
+    get_class_session,
     max_allowed_absences,
     sessions_on,
     update_class_session,
@@ -53,13 +55,11 @@ def test_cancelled_class_with_absence_flag_is_not_an_absence():
     assert compute_summary(sessions, TODAY).absences == 0
 
 
-def test_exam_day_counts_as_presence_but_absence_on_exam_day_counts():
+def test_absence_counts_once_per_class():
+    # Regra nova: cada aula vale 1 (a planilha contava AP em dobro)
     sessions = make_sessions(4)
-    sessions[0].has_exam = True  # presente na prova
-    sessions[1].has_exam = True
-    sessions[1].attended = False  # faltou no dia da prova
-    s = compute_summary(sessions, TODAY)
-    assert s.absences == 1
+    sessions[1].attended = False
+    assert compute_summary(sessions, TODAY).absences == 1
 
 
 def test_frequency_to_date_ignores_future_classes():
@@ -91,31 +91,41 @@ def test_no_classes_held_yet():
     assert s.frequency_to_date is None
 
 
-# ---------- testes com banco em memória ----------
+# ---------- testes com banco (fixture `db` em conftest.py) ----------
 
+from tests.conftest import MONDAY  # noqa: E402
 
-@pytest.fixture
-def db():
-    engine = create_engine("sqlite://")
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        session.add(Course(id=1, name="Aprendizagem Profunda", code="AP", term=6, credits=4))
-        session.add(ClassSession(course_id=1, day=TODAY))
-        session.commit()
-        yield session
+TUESDAY = MONDAY + timedelta(days=1)
 
 
 def test_update_class_session_marks_absence(db):
-    cs = update_class_session(db, 1, TODAY, attended=False)
+    assert update_class_session(db, 3, TUESDAY, attended=False) is True
+    cs = get_class_session(db, 3, TUESDAY)
     assert cs.attended is False
     assert cs.cancelled is False  # campos não informados não mudam
 
 
+def test_registering_same_absence_twice_changes_nothing(db):
+    update_class_session(db, 3, TUESDAY, attended=False)
+    assert update_class_session(db, 3, TUESDAY, attended=False) is False
+
+
 def test_update_class_session_rejects_day_without_class(db):
-    with pytest.raises(ValueError):
-        update_class_session(db, 1, TODAY + timedelta(days=1), attended=False)
+    with pytest.raises(NoClassError, match="segunda"):
+        update_class_session(db, 3, MONDAY, attended=False)  # AP não tem aula na segunda
 
 
 def test_sessions_on(db):
-    assert len(sessions_on(db, TODAY)) == 1
-    assert sessions_on(db, TODAY + timedelta(days=1)) == []
+    assert [s.course.code for s in sessions_on(db, MONDAY)] == ["ACD", "EI"]
+    assert sessions_on(db, MONDAY + timedelta(days=5)) == []  # sábado
+
+
+def test_cancel_day(db):
+    names = cancel_day(db, MONDAY)
+    assert len(names) == 2
+    assert all(s.cancelled for s in sessions_on(db, MONDAY))
+
+
+def test_cancel_day_without_classes(db):
+    with pytest.raises(NoClassError, match="sábado"):
+        cancel_day(db, MONDAY + timedelta(days=5))

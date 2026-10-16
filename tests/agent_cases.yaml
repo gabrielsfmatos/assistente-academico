@@ -1,0 +1,278 @@
+# Conjunto de teste do agente: frases escritas por Gabriel (15/10/2026).
+#
+# Como funciona a avaliação (a ser implementada junto com o agente):
+#   1. cada caso começa de uma cópia limpa do banco importado da planilha;
+#   2. as mensagens de `conversa` são enviadas ao agente, em ordem;
+#   3. o banco final é comparado com `esperado` (independe do nome das funções);
+#   4. a resposta final é avaliada por `tipo_resposta`, `resposta_contem` e `criterio`.
+#
+# Campos de `esperado` (todos opcionais):
+#   faltas / presencas / canceladas: aulas que devem terminar nesse estado
+#   provas: avaliações que devem existir (nome opcional quando não importa)
+#   media_final: média final lançada
+#   disciplina: campos da disciplina após a conversa (situação, regra de frequência, curso)
+#   sem_alteracoes: true = o banco não pode mudar (nada gravado na dúvida)
+#   tipo_resposta: informacao | pergunta | recusa | confirmacao_feita
+#   resposta_contem: textos que precisam aparecer na resposta final
+#   criterio: o que a resposta precisa transmitir (avaliado por um juiz LLM)
+#
+# Siglas: ACD, AP, CDD, EI, LPP (iguais às da grade de horários).
+
+data_referencia: 2026-10-15  # "hoje" nos testes: quinta-feira (aulas: LPP, CDD, AP)
+
+casos:
+  # ---------- registro de presença ----------
+  - id: 1
+    categoria: registro
+    conversa: ["faltei hoje"]
+    esperado:
+      faltas:
+        - {disciplina: LPP, dia: 2026-10-15}
+        - {disciplina: CDD, dia: 2026-10-15}
+        - {disciplina: AP, dia: 2026-10-15}
+      tipo_resposta: confirmacao_feita
+
+  - id: 2
+    categoria: registro
+    nota: "lógica invertida: falta só na aula do dia que não foi citada"
+    conversa: ["fui só nas aula de LPP e CDD hoje"]
+    esperado:
+      faltas: [{disciplina: AP, dia: 2026-10-15}]
+      presencas:
+        - {disciplina: LPP, dia: 2026-10-15}
+        - {disciplina: CDD, dia: 2026-10-15}
+      tipo_resposta: confirmacao_feita
+
+  - id: 10
+    categoria: registro
+    conversa: ["faltei ontem em ACD e EI"]
+    esperado:
+      faltas:
+        - {disciplina: ACD, dia: 2026-10-14}
+        - {disciplina: EI, dia: 2026-10-14}
+      tipo_resposta: confirmacao_feita
+
+  - id: 21
+    categoria: registro
+    nota: "sigla fora da grade (CD) + data relativa; as faltas de 13/10 JÁ estão registradas"
+    conversa: ["faltei em CD e AP anteontem"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      criterio: "Informa que as faltas de CDD e AP em 13/10 já estavam registradas."
+
+  - id: 17
+    categoria: registro_multiplo
+    conversa: ["faltei hoje e tirei 9,2 na P1 de LPP"]
+    esperado:
+      faltas:
+        - {disciplina: LPP, dia: 2026-10-15}
+        - {disciplina: CDD, dia: 2026-10-15}
+        - {disciplina: AP, dia: 2026-10-15}
+      provas: [{disciplina: LPP, nome: P1, nota: 9.2}]
+      tipo_resposta: confirmacao_feita
+
+  # ---------- aulas canceladas ----------
+  - id: 8
+    categoria: cancelamento
+    conversa: ["não vai ter aula de LPP no dia 22/10"]
+    esperado:
+      canceladas: [{disciplina: LPP, dia: 2026-10-22}]
+      tipo_resposta: confirmacao_feita
+
+  - id: 7
+    categoria: validacao_data
+    nota: "05/12/2026 é sábado: não há aulas para cancelar"
+    conversa: ["não vai ter nenhuma aula no dia 05/12"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["sábado"]
+
+  - id: 25
+    categoria: informacao_faltando
+    nota: "disciplina não informada E amanhã (16/10) é sexta, sem aulas"
+    conversa: ["não vai ter aula de ? amanhã"]
+    esperado:
+      sem_alteracoes: true
+      resposta_contem: ["sexta"]
+      criterio: "Avisa que amanhã é sexta e não há aulas (ou pergunta a disciplina e avisa)."
+
+  # ---------- provas e notas ----------
+  - id: 5
+    categoria: notas
+    conversa: ["tirei 9,3 na p1 de EI"]
+    esperado:
+      provas: [{disciplina: EI, nome: P1, nota: 9.3}]
+      tipo_resposta: confirmacao_feita
+
+  - id: 12
+    categoria: provas
+    conversa: ["p1 de AP marcada pro dia 17/11"]
+    esperado:
+      provas: [{disciplina: AP, nome: P1, dia: 2026-11-17}]
+      tipo_resposta: confirmacao_feita
+
+  - id: 20
+    categoria: provas
+    nota: "data relativa: quarta da semana que vem = 21/10; ACD ainda não tem provas"
+    conversa: ["tenho prova de ACD na quarta da semana que vem"]
+    esperado:
+      provas: [{disciplina: ACD, dia: 2026-10-21}]
+      tipo_resposta: confirmacao_feita
+
+  - id: 6
+    categoria: validacao_data
+    nota: "15/11/2026 é domingo; CDD também não tem prova cadastrada para 'mudar'"
+    conversa: ["a data da prova de CDD mudou para o dia 15/11"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: pergunta
+      resposta_contem: ["domingo"]
+
+  - id: 18
+    categoria: correcao
+    nota: "'a prova' é ambígua (LPP tem P1 e P2); a próxima é a P2 (17/11). Confirma antes."
+    conversa:
+      - "falei errado, a prova de LPP é no dia 19/11"
+      - "sim"
+    esperado:
+      provas: [{disciplina: LPP, nome: P2, dia: 2026-11-19}]
+      tipo_resposta: confirmacao_feita
+
+  - id: 24
+    categoria: dado_invalido
+    conversa: ["tirei oitcx na p1 de ACD"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: pergunta
+
+  - id: 9
+    categoria: notas
+    conversa: ["passei com média 9,2 em AP"]
+    esperado:
+      media_final: {disciplina: AP, nota: 9.2}
+      disciplina: {codigo: AP, situacao: aprovada}
+      tipo_resposta: confirmacao_feita
+
+  # ---------- consultas ----------
+  - id: 3
+    categoria: consulta
+    conversa: ["quantas faltas ainda posso tomar em ACD?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["5"]
+
+  - id: 11
+    categoria: consulta
+    conversa: ["quantas faltas eu tenho em ACD?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["3"]
+
+  - id: 22
+    categoria: consulta
+    nota: "pegadinha: Ciência de Dados não cobra frequência mínima"
+    conversa: ["ainda posso levar quantas faltas em ciencia de dados?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      criterio: "Explica que Ciência de Dados não cobra frequência mínima."
+
+  - id: 26
+    categoria: consulta
+    conversa: ["to com risco de reprovar por falta em alguma matéria?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      criterio: "Diz que nenhuma disciplina está em risco por falta."
+
+  - id: 27
+    categoria: consulta
+    conversa: ["quando é a próxima prova?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["17/11"]
+      criterio: "A próxima prova é a P2 de LPP em 17/11."
+
+  - id: 4
+    categoria: simulacao
+    nota: "lista completa das disciplinas do período (forma real de uso)"
+    conversa:
+      - "como fica meu CR geral no final do periodo se eu passar com 10 em LPP, 8,6 em ACD, 9 em AP, 9,5 em CDD, 10 em EI e 10 em Extensão?"
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["9,4426"]
+
+  - id: 16
+    categoria: simulacao
+    nota: "lista INCOMPLETA de propósito: calcula com as citadas e avisa as que faltaram"
+    conversa: ["qual vai ser meu CR no periodo se eu passar com 10 em ACD, 8,4 em LPP?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: informacao
+      resposta_contem: ["9,2"]
+      criterio: "Avisa que AP, Extensão, CDD e EI ficaram fora do cálculo."
+
+  # ---------- alterações estruturais (sempre com confirmação) ----------
+  - id: 13
+    categoria: estrutural
+    nota: "contradiz os dados atuais (LPP cobra frequência): confirmar antes"
+    conversa:
+      - "LPP não cobra frequência mínima"
+      - "sim"
+    esperado:
+      disciplina: {codigo: LPP, cobra_frequencia: false}
+      tipo_resposta: confirmacao_feita
+
+  - id: 14
+    categoria: informacao_faltando
+    conversa: ["fiz a disciplina tal em outro curso, então não deve ser contabilizada no CR"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: pergunta
+
+  - id: 15
+    categoria: estrutural
+    conversa:
+      - "tranquei a disciplina de LPP"
+      - "sim"
+    esperado:
+      disciplina: {codigo: LPP, situacao: trancada}
+      tipo_resposta: confirmacao_feita
+
+  # ---------- desfazer ----------
+  - id: 19
+    categoria: desfazer
+    conversa:
+      - "faltei hoje"
+      - "desfaça a última alteração"
+    esperado:
+      sem_alteracoes: true  # em relação ao banco inicial
+      tipo_resposta: confirmacao_feita
+
+  # ---------- casos de erro e fora do escopo ----------
+  - id: 23
+    categoria: disciplina_inexistente
+    conversa: ["faltei em TPS"]
+    esperado:
+      sem_alteracoes: true
+      criterio: "Diz que não encontrou TPS e mostra ou pergunta qual disciplina."
+
+  - id: 28
+    categoria: fora_do_escopo
+    conversa: ["quantos anos tem o presidente?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: recusa
+
+  - id: 29
+    categoria: fora_do_escopo
+    conversa: ["o que é regressão linear?"]
+    esperado:
+      sem_alteracoes: true
+      tipo_resposta: recusa
