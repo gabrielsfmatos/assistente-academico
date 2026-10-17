@@ -49,6 +49,9 @@ scripts/
   chat.py                conversa com o agente pelo terminal
   eval_agent.py          roda os 29 casos e mede a taxa de acerto
   telegram_bot.py        o agente no Telegram (responde só ao dono)
+  usage_report.py        resumo do uso real do bot
+  backup_db.py           backup do banco (local + cópia no Telegram)
+deploy/                  servidor: serviços systemd, setup.sh, update.sh e GUIA_SERVIDOR.md
 tests/                   testes automatizados (pytest)
   agent_cases.yaml       29 frases de teste do agente com o resultado esperado
 ```
@@ -72,3 +75,5 @@ python -m scripts.telegram_bot   # precisa de TELEGRAM_BOT_TOKEN e TELEGRAM_USER
 # site (abre em http://127.0.0.1:8000)
 python -m uvicorn app.web.main:app --reload
 ```
+
+Em produção (servidor Oracle, 24 horas): ver `deploy/GUIA_SERVIDOR.md`.

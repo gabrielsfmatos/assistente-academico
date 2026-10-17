@@ -1,0 +1,17 @@
+# Bot do Telegram rodando o tempo todo. Reinicia sozinho se cair.
+# Instalado por deploy/setup.sh (que troca __USER__ e __DIR__).
+[Unit]
+Description=Gerenciador Academico - bot do Telegram
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__DIR__
+ExecStart=__DIR__/.venv/bin/python -m scripts.telegram_bot
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+# Scripts e serviços do servidor sempre com quebra de linha do Linux (LF).
+*.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf

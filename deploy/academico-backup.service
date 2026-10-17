@@ -1,0 +1,9 @@
+# Backup do banco (roda pelo academico-backup.timer, uma vez por dia).
+[Unit]
+Description=Gerenciador Academico - backup do banco
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__DIR__
+ExecStart=__DIR__/.venv/bin/python -m scripts.backup_db --telegram

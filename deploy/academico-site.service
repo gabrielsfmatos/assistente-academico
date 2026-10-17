@@ -1,0 +1,17 @@
+# Site em 127.0.0.1:8000: só a própria máquina acessa. Quem leva o site até o
+# celular é o Tailscale ("tailscale serve"), com HTTPS e só para os seus aparelhos.
+[Unit]
+Description=Gerenciador Academico - site
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__DIR__
+ExecStart=__DIR__/.venv/bin/python -m uvicorn app.web.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

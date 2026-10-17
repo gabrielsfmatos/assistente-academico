@@ -1,0 +1,11 @@
+# Todo dia às 3h (horário de Brasília, configurado no setup.sh).
+# Persistent=true: se a máquina estava desligada às 3h, roda quando ligar.
+[Unit]
+Description=Backup diario do Gerenciador Academico
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
