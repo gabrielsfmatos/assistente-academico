@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Histórico — Gerenciador Acadêmico{% endblock %}
+{% block content %}
+<header class="top">
+  <div class="top-inner top-cr">
+    <div>
+      <h1 class="page-title">Histórico</h1>
+      <p class="top-sub">{{ terms | length }} períodos · {{ total_credits | br }} créditos no CR</p>
+    </div>
+    <div class="cr-box">
+      <span>CR acumulado</span>
+      <strong>{{ cr | br }}</strong>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  {% include "_flash.html" %}
+
+  {% if sim_courses %}
+  <section class="card sim">
+    <h2 class="section-title">Simular o CR</h2>
+    <p class="note">Digite as médias que você espera neste período. Nada é salvo.</p>
+    <form hx-post="/historico/simular" hx-target="#sim-result" hx-trigger="input delay:400ms, submit">
+      <div class="sim-grid">
+        {% for c in sim_courses %}
+          <label>
+            <span>{{ c.code or c.name[:3] | upper }}</span>
+            <input type="text" name="nota_{{ c.id }}" inputmode="decimal" placeholder="—" aria-label="Média simulada de {{ c.name }}">
+          </label>
+        {% endfor %}
+      </div>
+    </form>
+    <div id="sim-result" aria-live="polite"></div>
+  </section>
+  {% endif %}
+
+  {% for t in terms %}
+    <details class="term" {% if loop.first %}open{% endif %}>
+      <summary>
+        <span class="term-name">{{ t.term }}º período{% if t.term == current_term %} <em>atual</em>{% endif %}</span>
+        <span class="term-cr">{% if t.cr is not none %}CR {{ t.cr | br }}{% else %}sem notas{% endif %}</span>
+      </summary>
+      <ul class="course-list">
+        {% for c in t.courses %}
+          <li>
+            <button class="course-row {{ 'dropped' if c.status.value == 'trancada' }}"
+                    hx-get="/disciplinas/{{ c.id }}" hx-target="#sheet-root" hx-swap="innerHTML">
+              <span class="cr-name">
+                {{ c.name }}
+                <small>{{ c.credits | br }} créditos{% if not c.counts and c.status.value != 'trancada' %} · fora do CR ({{ c.program }}){% endif %}</small>
+              </span>
+              <span class="status st-{{ c.status.value }}">{{ STATUS_LABELS[c.status] }}</span>
+              <span class="grade {{ 'low' if c.grade is not none and c.grade < 7 }} {{ 'grade-missing' if c.grade is none }}">{{ c.grade | br }}</span>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% endfor %}
+
+  {% if auth_enabled %}<p class="logout"><a href="/sair">Sair deste aparelho</a></p>{% endif %}
+</main>
+{% endblock %}

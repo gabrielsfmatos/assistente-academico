@@ -1,0 +1,31 @@
+<div class="sheet-backdrop" onclick="if (event.target === this) this.remove()">
+  <section class="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: {{ e.color }}">
+    <span class="handle" aria-hidden="true"></span>
+    <header class="sheet-head">
+      <div>
+        <p class="sheet-code">{{ e.code }}</p>
+        <h2 id="sheet-title">{{ e.name }}</h2>
+        <p class="sheet-when">{{ e.course }}</p>
+      </div>
+      <button class="close" onclick="this.closest('.sheet-backdrop').remove()" aria-label="Fechar">×</button>
+    </header>
+    <form class="sheet-body form" method="post" action="/provas/{{ e.id }}">
+      <label class="field">
+        <span>Data</span>
+        <input type="date" name="dia" value="{{ e.day.isoformat() if e.day }}">
+      </label>
+      {% if e.happened %}
+      <label class="field">
+        <span>Nota <small>(deixe em branco se ainda não saiu)</small></span>
+        <input type="text" name="nota" inputmode="decimal" value="{{ e.grade | br if e.grade is not none }}" placeholder="ex.: 8,5">
+      </label>
+      {% else %}
+      <p class="note">A nota pode ser lançada a partir do dia da prova.</p>
+      {% endif %}
+      <button type="submit" class="btn">Salvar</button>
+    </form>
+    <form class="sheet-foot" method="post" action="/provas/{{ e.id }}/excluir">
+      <button type="submit" class="link-danger">Excluir esta prova</button>
+    </form>
+  </section>
+</div>

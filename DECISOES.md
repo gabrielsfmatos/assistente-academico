@@ -123,3 +123,36 @@ Ver `data/relatorio_importacao.md` (não vai para o GitHub). Resumo:
   (origem "site") e pode ser desfeita, inclusive as feitas pelo agente.
 - **HTMX incluído no projeto** (`app/web/static/htmx.min.js`), em vez de carregado de um CDN:
   o site não depende de serviço externo para funcionar na demonstração.
+
+- **Hospedagem:** Oracle Cloud "Always Free" (máquina ARM em São Paulo, sem custo). Bot e site no
+  mesmo servidor, com o SQLite em disco permanente. Plataformas gratuitas como Render não servem:
+  desligam por inatividade ou apagam o banco a cada reinício. O site fica acessível só pelo
+  Tailscale (rede privada) e com senha. A máquina será criada perto do uso real, porque a Oracle
+  pode recuperar máquinas gratuitas ociosas.
+- **Site, etapa 2:**
+  - **Provas:** próximas, sem data e já feitas; criar, mudar data, lançar nota e excluir. Prova
+    em dia sem aula é salva com aviso (no site a edição é direta e existe "desfazer"; no agente
+    continua pedindo confirmação, porque ele pode ter entendido a data errado).
+  - **Histórico:** períodos com CR, média final, trancar, curso da disciplina e regra de
+    frequência. **Simulação de CR** ao vivo, sem salvar nada, usando a mesma função do agente.
+  - **Excluir também entra no log:** o "desfazer" recria o registro apagado.
+  - **Senha:** uma senha no `.env` (`SITE_PASSWORD`); o cookie guarda só uma assinatura (HMAC)
+    da senha, nunca a senha. Senha errada espera 1 s, para dificultar tentativas em sequência.
+
+## Antes x depois (medido em 17/10/2026)
+
+Mesmo protocolo nos dois casos: quatro tarefas em sequência, cronômetro iniciado antes de
+"chegar à ferramenta" (planilha: ligar o computador e abrir o Sheets; bot: desbloquear o celular
+e abrir o Telegram). O bot já estava rodando, como estaria em uso real.
+
+| Tarefa | Planilha (computador) | Bot (celular) | Redução |
+|---|---|---|---|
+| Registrar uma falta | 39 s | 17 s | −56% |
+| Consultar as faltas de uma disciplina | 11 s | 11 s | 0% |
+| Simular o CR do período | 1 min 46 s | 32 s | −70% |
+| Simular o CR geral | 32 s | 20 s | −38% |
+| **Total** | **3 min 08 s** | **1 min 20 s** | **−57%** |
+
+Leitura honesta: consultas simples já eram rápidas na planilha (empate). O ganho está nas
+tarefas que exigem chegar à ferramenta ou fazer contas (registro e simulações). Além do tempo,
+o sistema corrigiu as 7 inconsistências de regra encontradas na planilha.

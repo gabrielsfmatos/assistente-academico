@@ -4,22 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1D2A5B">
-  <title>{% block title %}Assistente acadêmico{% endblock %}</title>
+  <title>{% block title %}Gerenciador Acadêmico{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/htmx.min.js" defer></script>  {# htmx 2.0.4, incluído no projeto #}
 </head>
-<body>
-  {% block content %}{% endblock %}
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
 
-  <nav class="tabs" aria-label="Seções">
-    <a href="/" class="{{ 'on' if tab == 'semana' }}" {% if tab == 'semana' %}aria-current="page"{% endif %}>Semana</a>
-    <a href="#" class="soon" aria-disabled="true" title="Em breve">Provas</a>
-    <a href="#" class="soon" aria-disabled="true" title="Em breve">Histórico</a>
-  </nav>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <a class="brand" href="/" aria-label="Gerenciador Acadêmico, início">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3 1.5 8.5 12 14l8.5-4.46V16h2V8.5L12 3Z" fill="currentColor"/>
+          <path d="M5.5 12.2v3.6c0 1.9 2.9 3.7 6.5 3.7s6.5-1.8 6.5-3.7v-3.6L12 15.6l-6.5-3.4Z" fill="currentColor" opacity=".7"/>
+        </svg>
+        <span>Gerenciador Acadêmico</span>
+      </a>
 
+      {% block nav %}
+      <nav class="tabs" aria-label="Seções">
+        {% set items = [
+          ('semana', '/', 'Semana', 'M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm-2 7h14v10H5V9Zm2 2v2h2v-2H7Zm4 0v2h2v-2h-2Zm4 0v2h2v-2h-2Zm-8 4v2h2v-2H7Zm4 0v2h2v-2h-2Z'),
+          ('provas', '/provas', 'Provas', 'M9 2h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V3a1 1 0 0 1 1-1Zm1 2v2h4V4h-4Zm5.3 6.3-4.3 4.3-2.3-2.3-1.4 1.4 3.7 3.7 5.7-5.7-1.4-1.4Z'),
+          ('historico', '/historico', 'Histórico', 'M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z'),
+        ] %}
+        {% for key, href, label, icon in items %}
+          <a href="{{ href }}" class="{{ 'on' if tab == key }}" {% if tab == key %}aria-current="page"{% endif %}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ icon }}" fill="currentColor"/></svg>
+            <span>{{ label }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+      {% endblock %}
+    </div>
+  </header>
+
+  <div id="conteudo">
+    {% block content %}{% endblock %}
+  </div>
+
+  {% if ok %}<p class="toast" role="status">{{ ok }}</p>{% endif %}
   <div id="sheet-root"></div>
+
+  <script>
+    // Painéis: fecha com Esc e coloca o foco dentro do painel ao abrir.
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") document.querySelector(".sheet-backdrop")?.remove();
+    });
+    document.addEventListener("htmx:afterSwap", (e) => {
+      if (e.target.id === "sheet-root") e.target.querySelector(".sheet")?.focus();
+    });
+    // Mensagens somem da barra de endereço, para não reaparecerem ao recarregar.
+    document.querySelector(".toast") && setTimeout(() => document.querySelector(".toast").classList.add("hide"), 2600);
+    const url = new URL(location.href);
+    if (["ok", "aviso", "erro"].some((k) => url.searchParams.has(k))) {
+      ["ok", "aviso", "erro"].forEach((k) => url.searchParams.delete(k));
+      history.replaceState(null, "", url);
+    }
+  </script>
 </body>
 </html>

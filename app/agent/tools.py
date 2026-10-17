@@ -452,11 +452,7 @@ class AgentTools:
         return {"ok": True, "canceladas": names, "dia": br_date(day)}
 
     def _next_assessment_name(self, course: Course) -> str:
-        existing = {a.name for a in course.assessments}
-        n = 1
-        while f"P{n}" in existing:
-            n += 1
-        return f"P{n}"
+        return assessment_svc.next_free_name(self.db, course.id)
 
     def tool_marcar_avaliacao(self, disciplina: str, dia: str, nome: Optional[str] = None) -> dict:
         course = self._course(disciplina)

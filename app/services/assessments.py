@@ -12,7 +12,7 @@ from sqlmodel import Session, select
 
 from app.models import Assessment, Course, CourseStatus, ScheduleSlot
 from app.services.attendance import WEEKDAY_NAMES
-from app.services.changes import ChangeBatch, create, update_fields
+from app.services.changes import ChangeBatch, create, delete, update_fields
 from app.services.grades import validate_grade
 
 
@@ -37,6 +37,15 @@ def get_assessment(db: Session, course_id: int, name: str) -> Optional[Assessmen
             Assessment.course_id == course_id, Assessment.name == normalize_name(name)
         )
     ).first()
+
+
+def next_free_name(db: Session, course_id: int) -> str:
+    """Próximo nome livre de prova da disciplina: P1, P2, P3..."""
+    existing = set(db.exec(select(Assessment.name).where(Assessment.course_id == course_id)).all())
+    n = 1
+    while f"P{n}" in existing:
+        n += 1
+    return f"P{n}"
 
 
 def exam_days(db: Session, course_id: int) -> set[date]:
@@ -109,3 +118,25 @@ def set_assessment_grade(
         return create(db, Assessment(course_id=course_id, name=name, grade=grade), batch, description)
     update_fields(db, existing, {"grade": grade}, batch, description)
     return existing
+
+
+def clear_assessment_grade(db: Session, assessment_id: int, batch: Optional[ChangeBatch] = None) -> bool:
+    a = _get(db, assessment_id)
+    return update_fields(
+        db, a, {"grade": None}, batch, f"Nota da {a.name} de {a.course.name} apagada"
+    )
+
+
+def delete_assessment(db: Session, assessment_id: int, batch: Optional[ChangeBatch] = None) -> str:
+    """Exclui a avaliação (pode ser desfeito). Devolve a descrição."""
+    a = _get(db, assessment_id)
+    description = f"{a.name} de {a.course.name} excluída"
+    delete(db, a, batch, description)
+    return description
+
+
+def _get(db: Session, assessment_id: int) -> Assessment:
+    a = db.get(Assessment, assessment_id)
+    if a is None:
+        raise ValueError(f"Avaliação {assessment_id} não encontrada.")
+    return a

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Provas — Gerenciador Acadêmico{% endblock %}
+{% macro exam_row(e, past=False) %}
+  <li>
+    <button class="exam {{ 'past' if past }}" style="--c: {{ e.color }}"
+            hx-get="/provas/{{ e.id }}" hx-target="#sheet-root" hx-swap="innerHTML">
+      {% if e.day %}
+        <span class="date">
+          <span class="d-num">{{ e.day.day }}</span>
+          <span class="d-mon">{{ SHORT_MONTHS[e.day.month - 1] }}</span>
+        </span>
+      {% else %}
+        <span class="date date-none">sem<br>data</span>
+      {% endif %}
+      <span class="exam-main">
+        <span class="exam-title"><strong>{{ e.name }}</strong> · {{ e.code }}</span>
+        <span class="exam-course">{{ e.course }}</span>
+        {% if e.day %}<span class="exam-when {{ 'soon' if not past and e.days_left <= 7 }}">{{ SHORT_DAYS[e.day.weekday()] | capitalize }}, {{ e.when }}</span>{% endif %}
+      </span>
+      {% if e.grade is not none %}
+        <span class="grade {{ 'low' if e.grade < 7 }}">{{ e.grade | br }}</span>
+      {% elif past %}
+        <span class="grade grade-missing">sem nota</span>
+      {% endif %}
+      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </li>
+{% endmacro %}
+
+{% block content %}
+<header class="top">
+  <div class="top-inner">
+    <div>
+      <h1 class="page-title">Provas</h1>
+      <p class="top-sub">{% if upcoming %}Próxima: {{ upcoming[0].name }} de {{ upcoming[0].code }}, {{ upcoming[0].when }}{% else %}Nenhuma prova marcada{% endif %}</p>
+    </div>
+    <button class="add-btn" hx-get="/provas/nova" hx-target="#sheet-root" hx-swap="innerHTML">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+      Nova prova
+    </button>
+  </div>
+</header>
+
+<main class="page">
+  {% include "_flash.html" %}
+
+  <section>
+    <h2 class="section-title">Próximas</h2>
+    {% if upcoming %}
+      <ul class="exam-list">{% for e in upcoming %}{{ exam_row(e) }}{% endfor %}</ul>
+    {% else %}
+      <p class="empty-card">Nenhuma prova marcada. Use "+ Nova prova" ou peça ao bot.</p>
+    {% endif %}
+  </section>
+
+  {% if undated %}
+  <section>
+    <h2 class="section-title">Sem data</h2>
+    <ul class="exam-list">{% for e in undated %}{{ exam_row(e, past=True) }}{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if done %}
+  <section>
+    <h2 class="section-title">Já feitas</h2>
+    <ul class="exam-list">{% for e in done %}{{ exam_row(e, past=True) }}{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+</main>
+{% endblock %}

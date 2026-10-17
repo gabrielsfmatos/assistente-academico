@@ -1,0 +1,31 @@
+<div class="sheet-backdrop" onclick="if (event.target === this) this.remove()">
+  <section class="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: #1D2A5B">
+    <span class="handle" aria-hidden="true"></span>
+    <header class="sheet-head">
+      <div><h2 id="sheet-title">Nova prova</h2></div>
+      <button class="close" onclick="this.closest('.sheet-backdrop').remove()" aria-label="Fechar">×</button>
+    </header>
+    <form class="sheet-body form" method="post" action="/provas">
+      <fieldset class="field">
+        <legend>Disciplina</legend>
+        <div class="course-pick">
+          {% for c in courses %}
+            <label style="--c: {{ c.color }}">
+              <input type="radio" name="disciplina" value="{{ c.id }}" required>
+              <span><strong>{{ c.code }}</strong> {{ c.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <label class="field">
+        <span>Data</span>
+        <input type="date" name="dia" required>
+      </label>
+      <label class="field">
+        <span>Nome <small>(opcional: em branco vira P1, P2...)</small></span>
+        <input type="text" name="nome" maxlength="40" placeholder="P1">
+      </label>
+      <button type="submit" class="btn">Salvar prova</button>
+    </form>
+  </section>
+</div>

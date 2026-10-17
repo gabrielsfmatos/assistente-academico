@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Entrar — Gerenciador Acadêmico{% endblock %}
+{% block body_class %}is-login{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<main class="login">
+  <form method="post" action="/login" class="login-card">
+    <h1>Entrar</h1>
+    <p class="note">Digite a senha para continuar. Este aparelho fica conectado por 90 dias.</p>
+    <input type="hidden" name="prox" value="{{ prox }}">
+    <label class="field">
+      <span>Senha</span>
+      <input type="password" name="senha" autocomplete="current-password" required autofocus>
+    </label>
+    {% if erro %}<p class="flash flash-erro" role="alert">Senha incorreta.</p>{% endif %}
+    <button type="submit" class="btn">Entrar</button>
+  </form>
+</main>
+{% endblock %}

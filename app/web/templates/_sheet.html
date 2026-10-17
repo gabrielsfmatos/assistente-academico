@@ -1,5 +1,6 @@
 <div class="sheet-backdrop" onclick="if (event.target === this) this.remove()">
-  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: {{ b.color }}">
+  <section class="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: {{ b.color }}">
+    <span class="handle" aria-hidden="true"></span>
     <header class="sheet-head">
       <div>
         <p class="sheet-code">{{ b.code }}</p>

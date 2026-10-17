@@ -91,6 +91,14 @@ def create(db: Session, obj: SQLModel, batch: Optional[ChangeBatch], description
     return obj
 
 
+def delete(db: Session, obj: SQLModel, batch: Optional[ChangeBatch], description: str) -> None:
+    """Apaga o registro, guardando uma cópia no log para o "desfazer" recriar."""
+    batch = batch or ChangeBatch()
+    _record(db, batch, obj, "delete", snapshot(obj), None, description)
+    db.delete(obj)
+    db.commit()
+
+
 def _restore(model: type[SQLModel], data: dict) -> SQLModel:
     """Converte o JSON salvo de volta para os tipos corretos (ex.: texto -> date)."""
     return model.model_validate(data)
@@ -119,6 +127,8 @@ def undo_last_batch(db: Session) -> list[str]:
             db.add(current)
         elif entry.action == "create" and current is not None:
             db.delete(current)
+        elif entry.action == "delete" and current is None:
+            db.add(_restore(model, json.loads(entry.before)))
         entry.undone = True
         db.add(entry)
 

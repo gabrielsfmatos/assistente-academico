@@ -1,24 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Semana — Assistente acadêmico{% endblock %}
+{% block title %}Semana — Gerenciador Acadêmico{% endblock %}
 {% block content %}
 
 <header class="top">
   <div class="top-inner">
-    <div class="month">
-      <h1>{{ MONTHS[days[0].month - 1] | capitalize }}{% if days[-1].month != days[0].month %} / {{ MONTHS[days[-1].month - 1] }}{% endif %}</h1>
-      <span class="year">{{ days[-1].year }}</span>
+    <div>
+      <h1 class="page-title">{{ MONTHS[days[0].month - 1] | capitalize }}{% if days[-1].month != days[0].month %} / {{ MONTHS[days[-1].month - 1] }}{% endif %} <span class="year">{{ days[-1].year }}</span></h1>
+      <p class="top-sub">{{ days[0].day }}{% if days[-1].month != days[0].month %} de {{ SHORT_MONTHS[days[0].month - 1] }}{% endif %} a {{ days[-1].day }} de {{ SHORT_MONTHS[days[-1].month - 1] }}{% if is_current_week %} · Semana atual{% endif %}</p>
     </div>
     <div class="nav">
-      {% if not is_current_week %}<a class="today-btn" href="/">Hoje</a>{% endif %}
-      <a class="arrow" href="/?semana={{ prev_week.isoformat() }}" aria-label="Semana anterior">‹</a>
-      <a class="arrow" href="/?semana={{ next_week.isoformat() }}" aria-label="Próxima semana">›</a>
+      <a class="today-btn {{ 'is-here' if is_current_week }}" href="/" {% if is_current_week %}aria-disabled="true" tabindex="-1"{% endif %}>Hoje</a>
+      <a class="arrow" href="/?semana={{ prev_week.isoformat() }}" aria-label="Semana anterior">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a class="arrow" href="/?semana={{ next_week.isoformat() }}" aria-label="Próxima semana">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
     </div>
   </div>
 
   <div class="days" role="row">
     <span class="corner" aria-hidden="true"></span>
     {% for d in days %}
-      <div class="dayhead {{ 'is-today' if d == today }}" role="columnheader">
+      <div class="dayhead {{ 'is-today' if d == today }}" role="columnheader" {% if d == today %}aria-current="date"{% endif %}>
         <span class="dow">{{ SHORT_DAYS[d.weekday()] }}</span>
         <span class="num">{{ d.day }}</span>
       </div>
@@ -28,7 +32,7 @@
 
 <main class="grid-wrap">
   {% if not rows %}
-    <p class="empty">Nenhum horário cadastrado.</p>
+    <p class="empty-card">Nenhum horário cadastrado.</p>
   {% else %}
   <div class="grid" style="--rows: {{ rows | length }}">
     {% for start, end in rows %}
@@ -43,16 +47,8 @@
       {% endfor %}
     {% endfor %}
   </div>
+  <p class="hint">Selecione uma aula para marcar presença, falta ou aula cancelada.</p>
   {% endif %}
-
-  <ul class="legend" aria-label="Legenda">
-    <li><span class="lg lg-present"></span>Presença</li>
-    <li><span class="lg lg-absent"></span>Falta</li>
-    <li><span class="lg lg-cancel"></span>Sem aula</li>
-    <li><span class="lg lg-exam"></span>Prova</li>
-  </ul>
-
-  {% include "_last_change.html" %}
 </main>
 
 {% endblock %}

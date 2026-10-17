@@ -1,15 +1,15 @@
-<button class="block {{ 'absent' if not b.attended and not b.cancelled }} {{ 'cancelled' if b.cancelled }} {{ 'upcoming' if not b.past }} {{ 'has-exam' if b.exam }}"
+<button class="block {{ 'cancelled' if b.cancelled else 'upcoming' if not b.past else 'absent' if not b.attended else 'present' }} {{ 'has-exam' if b.exam }}"
         id="block-{{ b.course_id }}-{{ b.day.isoformat() }}"
         style="--c: {{ b.color }}"
         hx-get="/aulas/{{ b.course_id }}/{{ b.day.isoformat() }}"
         hx-target="#sheet-root" hx-swap="innerHTML"
         {% if oob %}hx-swap-oob="true"{% endif %}
-        aria-label="{{ b.name }}, {{ LONG_DAYS[b.day.weekday()] }} {{ b.day.day }}/{{ b.day.month }}: {{ 'sem aula' if b.cancelled else 'falta' if not b.attended else 'presença' }}{{ ', prova ' ~ b.exam if b.exam }}">
+        aria-label="{{ b.name }}, {{ LONG_DAYS[b.day.weekday()] }} {{ b.day.day }}/{{ b.day.month }}: {{ 'sem aula' if b.cancelled else 'ainda vai acontecer' if not b.past else 'falta' if not b.attended else 'presença' }}{{ ', prova ' ~ b.exam if b.exam }}">
   <span class="b-code">{{ b.code }}</span>
   {% if b.cancelled %}
-    <span class="b-status">sem aula</span>
-  {% elif not b.attended %}
-    <span class="b-status">falta</span>
+    <span class="b-status">Sem aula</span>
+  {% elif b.past and not b.attended %}
+    <span class="b-status">Falta</span>
   {% endif %}
   {% if b.exam %}<span class="b-exam">{{ b.exam }}</span>{% endif %}
 </button>

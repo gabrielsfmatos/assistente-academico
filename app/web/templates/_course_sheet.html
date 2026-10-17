@@ -1,0 +1,49 @@
+<div class="sheet-backdrop" onclick="if (event.target === this) this.remove()">
+  <section class="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: {{ color }}">
+    <span class="handle" aria-hidden="true"></span>
+    <header class="sheet-head">
+      <div>
+        <p class="sheet-code">{{ c.code or '' }} {{ c.term }}º período · {{ c.credits | br }} créditos</p>
+        <h2 id="sheet-title">{{ c.name }}</h2>
+        <p class="sheet-when">{{ STATUS_LABELS[c.status] | capitalize }}{% if not counts and c.status.value != 'trancada' %} · não entra no CR (cursada em {{ c.program }}){% endif %}</p>
+      </div>
+      <button class="close" onclick="this.closest('.sheet-backdrop').remove()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="sheet-body">
+      {% if c.status.value != 'trancada' %}
+      <form class="form" method="post" action="/disciplinas/{{ c.id }}/media">
+        <label class="field">
+          <span>Média final</span>
+          <input type="text" name="nota" inputmode="decimal" value="{{ c.final_grade | br if c.final_grade is not none }}" placeholder="ex.: 8,5">
+        </label>
+        <button type="submit" class="btn">Salvar média</button>
+      </form>
+      {% endif %}
+
+      {% if summary %}
+        <h3>Frequência</h3>
+        <p class="note">{{ summary.absences }} falta{{ 's' if summary.absences != 1 }}{% if summary.requires_attendance %} de {{ summary.max_absences }} permitidas{% endif %}.</p>
+      {% endif %}
+
+      <h3>Ajustes</h3>
+      <div class="settings">
+        <form method="post" action="/disciplinas/{{ c.id }}/curso" class="inline-form">
+          <label for="curso-{{ c.id }}">Curso em que foi cursada <small>(só SI entra no CR)</small></label>
+          <div>
+            <input id="curso-{{ c.id }}" type="text" name="curso" value="{{ c.program }}" maxlength="10" required>
+            <button type="submit" class="chip">Salvar</button>
+          </div>
+        </form>
+        {% if is_current %}
+          <form method="post" action="/disciplinas/{{ c.id }}/frequencia">
+            <button type="submit" class="chip {{ 'on' if c.requires_attendance }}" aria-pressed="{{ 'true' if c.requires_attendance else 'false' }}">Cobra frequência mínima</button>
+          </form>
+          <form method="post" action="/disciplinas/{{ c.id }}/trancar">
+            <button type="submit" class="chip">{{ 'Destrancar disciplina' if c.status.value == 'trancada' else 'Trancar disciplina' }}</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
