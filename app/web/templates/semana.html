@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Semana — Assistente acadêmico{% endblock %}
+{% block content %}
+
+<header class="top">
+  <div class="top-inner">
+    <div class="month">
+      <h1>{{ MONTHS[days[0].month - 1] | capitalize }}{% if days[-1].month != days[0].month %} / {{ MONTHS[days[-1].month - 1] }}{% endif %}</h1>
+      <span class="year">{{ days[-1].year }}</span>
+    </div>
+    <div class="nav">
+      {% if not is_current_week %}<a class="today-btn" href="/">Hoje</a>{% endif %}
+      <a class="arrow" href="/?semana={{ prev_week.isoformat() }}" aria-label="Semana anterior">‹</a>
+      <a class="arrow" href="/?semana={{ next_week.isoformat() }}" aria-label="Próxima semana">›</a>
+    </div>
+  </div>
+
+  <div class="days" role="row">
+    <span class="corner" aria-hidden="true"></span>
+    {% for d in days %}
+      <div class="dayhead {{ 'is-today' if d == today }}" role="columnheader">
+        <span class="dow">{{ SHORT_DAYS[d.weekday()] }}</span>
+        <span class="num">{{ d.day }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</header>
+
+<main class="grid-wrap">
+  {% if not rows %}
+    <p class="empty">Nenhum horário cadastrado.</p>
+  {% else %}
+  <div class="grid" style="--rows: {{ rows | length }}">
+    {% for start, end in rows %}
+      <div class="time" style="grid-row: {{ loop.index }}">
+        <span>{{ start[:2] }}h</span>
+      </div>
+      {% set row = loop.index %}
+      {% for d in days %}
+        <div class="cell {{ 'is-today' if d == today }}" style="grid-row: {{ row }}; grid-column: {{ loop.index + 1 }}">
+          {% for b in grid.get((d, start), []) %}{% include "_block.html" %}{% endfor %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <ul class="legend" aria-label="Legenda">
+    <li><span class="lg lg-present"></span>Presença</li>
+    <li><span class="lg lg-absent"></span>Falta</li>
+    <li><span class="lg lg-cancel"></span>Sem aula</li>
+    <li><span class="lg lg-exam"></span>Prova</li>
+  </ul>
+
+  {% include "_last_change.html" %}
+</main>
+
+{% endblock %}

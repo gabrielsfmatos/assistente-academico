@@ -1,0 +1,331 @@
+/* Agenda acadêmica: grade semanal com uma cor por disciplina. */
+
+:root {
+  --fundo: #F3F5FA;
+  --superficie: #FFFFFF;
+  --tinta: #1B2236;
+  --suave: #667085;
+  --linha: #E3E8F2;
+  --topo: #1D2A5B;          /* azul profundo do cabeçalho */
+  --topo-texto: #EEF2FF;
+  --falta: #D63B3B;
+  --prova: #FFD84D;
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+  --texto: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --col-hora: 2.75rem;
+  --altura-linha: 5.75rem;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--tinta);
+  font: 1rem/1.45 var(--texto);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
+a { color: inherit; }
+:focus-visible { outline: 3px solid #7AA2FF; outline-offset: 2px; }
+
+/* ---------- cabeçalho ---------- */
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--topo);
+  color: var(--topo-texto);
+  padding: max(.75rem, env(safe-area-inset-top)) 0 .5rem;
+}
+
+.top-inner, .days, .grid-wrap {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.top-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+
+.month { display: flex; align-items: baseline; gap: .5rem; }
+.month h1 { margin: 0; font: 800 1.6rem/1.1 var(--display); letter-spacing: -0.015em; }
+.year { font-size: .95rem; opacity: .7; }
+
+.nav { display: flex; align-items: center; gap: .25rem; }
+.arrow {
+  display: grid; place-items: center;
+  width: 2.5rem; height: 2.5rem;
+  border-radius: 50%;
+  font: 500 1.6rem/1 var(--display);
+  text-decoration: none;
+}
+.arrow:hover { background: rgba(255, 255, 255, .12); }
+.today-btn {
+  padding: .35rem .8rem;
+  border: 1.5px solid rgba(238, 242, 255, .6);
+  border-radius: 999px;
+  font: 700 .85rem var(--texto);
+  text-decoration: none;
+  margin-right: .25rem;
+}
+
+.days {
+  display: grid;
+  grid-template-columns: var(--col-hora) repeat(5, 1fr);
+  margin-top: .75rem;
+}
+.dayhead { display: grid; justify-items: center; gap: .1rem; }
+.dow { font-size: .8rem; opacity: .75; }
+.num {
+  display: grid; place-items: center;
+  width: 2.1rem; height: 2.1rem;
+  border-radius: 50%;
+  font: 700 1.1rem/1 var(--display);
+}
+.dayhead.is-today .dow { opacity: 1; font-weight: 700; }
+.dayhead.is-today .num { background: var(--topo-texto); color: var(--topo); }
+
+/* ---------- grade ---------- */
+
+.grid-wrap { padding-top: .75rem; }
+
+.grid {
+  display: grid;
+  grid-template-columns: var(--col-hora) repeat(5, 1fr);
+  grid-template-rows: repeat(var(--rows), var(--altura-linha));
+  background: var(--superficie);
+  border-radius: 1rem;
+  box-shadow: 0 1px 0 var(--linha), 0 8px 24px rgba(29, 42, 91, .06);
+  overflow: hidden;
+}
+
+.time {
+  grid-column: 1;
+  padding: .45rem 0 0 .55rem;
+  font-size: .8rem;
+  color: var(--suave);
+  border-top: 1px solid var(--linha);
+}
+.time:first-child { border-top: 0; }
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .3rem .2rem;
+  border-top: 1px solid var(--linha);
+  border-left: 1px solid var(--linha);
+  min-width: 0;
+}
+.grid > .cell:nth-child(-n + 6) { border-top: 0; }
+.cell.is-today { background: #F6F8FF; }
+
+/* bloco de aula */
+.block {
+  --tom: color-mix(in srgb, var(--c) 14%, white);
+  --forte: color-mix(in srgb, var(--c) 78%, black);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .15rem;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  padding: .45rem .4rem;
+  border: 0;
+  border-left: 4px solid var(--c);
+  border-radius: .55rem;
+  background: var(--tom);
+  color: var(--forte);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+.block:hover { box-shadow: 0 2px 8px color-mix(in srgb, var(--c) 30%, transparent); }
+.block:active { transform: scale(.97); }
+
+.b-code { font: 800 1rem/1.1 var(--display); letter-spacing: -0.01em; }
+.b-status {
+  font: 700 .72rem/1.3 var(--texto);
+  padding: .05rem .35rem;
+  border-radius: .3rem;
+}
+.b-exam {
+  margin-top: auto;
+  font: 800 .75rem/1.3 var(--display);
+  padding: .05rem .4rem;
+  border-radius: .3rem;
+  background: var(--prova);
+  color: var(--tinta);
+}
+
+/* falta: bloco cheio na cor da disciplina, com etiqueta vermelha */
+.block.absent { background: var(--c); color: #fff; }
+.block.absent .b-status { background: #fff; color: var(--falta); }
+
+/* aula cancelada: cinza listrado */
+.block.cancelled {
+  border-left-color: #B8C0CF;
+  color: var(--suave);
+  background: repeating-linear-gradient(135deg, #F1F3F7 0 6px, #E7EBF2 6px 12px);
+}
+.block.cancelled .b-code { text-decoration: line-through; }
+.block.cancelled .b-status { color: var(--suave); padding-left: 0; }
+
+/* aulas futuras: mais leves, ainda clicáveis */
+.block.upcoming:not(.absent):not(.cancelled) {
+  background: var(--superficie);
+  box-shadow: inset 0 0 0 1.5px var(--tom);
+}
+
+/* ---------- legenda e última alteração ---------- */
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: .4rem 1rem;
+  margin: .9rem 0 0; padding: 0; list-style: none;
+  font-size: .85rem; color: var(--suave);
+}
+.legend li { display: flex; align-items: center; gap: .4rem; }
+.lg { width: .95rem; height: .95rem; border-radius: .25rem; }
+.lg-present { background: color-mix(in srgb, #3B6FE0 14%, white); border-left: 3px solid #3B6FE0; }
+.lg-absent { background: #3B6FE0; box-shadow: inset 0 0 0 2px #fff, 0 0 0 1.5px var(--falta); }
+.lg-cancel { background: repeating-linear-gradient(135deg, #F1F3F7 0 3px, #DDE2EA 3px 6px); }
+.lg-exam { background: var(--prova); }
+
+.last-change {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin-top: 1.25rem; padding: .85rem 1rem;
+  background: var(--superficie);
+  border-radius: .8rem;
+  font-size: .9rem; color: var(--suave);
+}
+.last-change.hidden { display: none; }
+.last-change p { margin: 0; }
+.last-change strong { color: var(--tinta); }
+.undo {
+  flex: none;
+  padding: .5rem .95rem;
+  border: 0; border-radius: 999px;
+  background: var(--topo); color: var(--topo-texto);
+  font: 700 .85rem var(--texto);
+  cursor: pointer;
+}
+
+.empty { color: var(--suave); text-align: center; padding: 2rem 0; }
+
+/* ---------- painel de detalhes (abre ao tocar numa aula) ---------- */
+
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(17, 24, 48, .45);
+  animation: fade .15s ease;
+}
+.sheet {
+  width: 100%; max-width: 34rem; max-height: 88vh;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: rise .2s ease;
+}
+@media (min-width: 40rem) {
+  .sheet-backdrop { align-items: center; }
+  .sheet { border-radius: 1.25rem; }
+}
+
+.sheet-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+  padding: 1.1rem 1.25rem 1rem;
+  background: var(--c);
+  color: #fff;
+}
+.sheet-code { margin: 0; font: 800 .95rem var(--display); opacity: .85; }
+.sheet-head h2 { margin: .1rem 0 .3rem; font: 800 1.35rem/1.2 var(--display); }
+.sheet-when { margin: 0; font-size: .92rem; opacity: .9; }
+.close {
+  flex: none;
+  width: 2.25rem; height: 2.25rem;
+  border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .2); color: #fff;
+  font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+
+.sheet-body { padding: .25rem 1.25rem 1.5rem; }
+.sheet-body h3 { margin: 1.2rem 0 .55rem; font: 700 1rem var(--display); }
+
+.segmented {
+  display: grid; grid-template-columns: 1fr 1fr;
+  padding: .25rem; gap: .25rem;
+  background: var(--fundo);
+  border-radius: .8rem;
+}
+.segmented button {
+  padding: .7rem; border: 0; border-radius: .6rem;
+  background: none; color: var(--suave);
+  font: 700 1rem var(--texto); cursor: pointer;
+}
+.segmented button.on { background: var(--superficie); color: var(--tinta); box-shadow: 0 1px 4px rgba(29, 42, 91, .12); }
+.segmented button.on.absent { background: var(--falta); color: #fff; }
+
+.toggles { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.chip {
+  padding: .45rem .9rem;
+  border: 1.5px solid var(--linha); border-radius: 999px;
+  background: var(--superficie); color: var(--tinta);
+  font: 700 .88rem var(--texto); cursor: pointer;
+}
+.chip.on { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+
+.exam-line { margin: .75rem 0 0; }
+.exam-line strong { background: var(--prova); padding: 0 .3rem; border-radius: .25rem; }
+
+.stat { margin: 0; font-size: 1.05rem; }
+.stat strong { font: 800 1.6rem var(--display); color: var(--c); }
+.meter { height: .5rem; margin: .5rem 0; background: var(--fundo); border-radius: 999px; overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--c); border-radius: 999px; }
+.meter.atencao > span, .meter.reprovado_por_falta > span { background: var(--falta); }
+.note { margin: .25rem 0 0; color: var(--suave); font-size: .92rem; }
+.note.atencao, .note.reprovado_por_falta { color: var(--falta); font-weight: 700; }
+
+.exams { margin: 0; padding: 0; list-style: none; }
+.exams li { padding: .45rem 0; border-bottom: 1px solid var(--linha); }
+.exams li:last-child { border-bottom: 0; }
+
+/* ---------- navegação inferior ---------- */
+
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--superficie);
+  box-shadow: 0 -1px 0 var(--linha);
+}
+.tabs a {
+  padding: .9rem .25rem;
+  text-align: center; text-decoration: none;
+  font: 700 .95rem var(--display);
+  color: var(--suave);
+}
+.tabs a.on { color: var(--topo); box-shadow: inset 0 3px 0 var(--topo); }
+.tabs a.soon { opacity: .4; pointer-events: none; }
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { transform: translateY(1.5rem); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop, .sheet { animation: none; }
+  .block { transition: none; }
+}
+
+@media (min-width: 40rem) {
+  :root { --col-hora: 3.5rem; --altura-linha: 6.5rem; }
+  .b-code { font-size: 1.1rem; }
+}

@@ -41,6 +41,7 @@ app/
     prompt.py            instruções de sistema (regras de comportamento)
     llm.py               adaptador do Gemini (trocar de provedor = trocar este arquivo)
     agent.py             laço mensagem -> modelo -> ferramentas -> resposta
+  web/                   site (FastAPI + Jinja2 + HTMX), usa os mesmos serviços
 scripts/
   import_xlsx.py         importa a planilha antiga e audita as fórmulas
   show_summary.py        mostra frequência e CR no terminal
@@ -67,4 +68,7 @@ python -m pytest
 python -m scripts.chat
 python -m scripts.eval_agent --tag v1
 python -m scripts.telegram_bot   # precisa de TELEGRAM_BOT_TOKEN e TELEGRAM_USER_ID
+
+# site (abre em http://127.0.0.1:8000)
+python -m uvicorn app.web.main:app --reload
 ```

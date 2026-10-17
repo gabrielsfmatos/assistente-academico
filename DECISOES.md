@@ -114,3 +114,12 @@ Ver `data/relatorio_importacao.md` (não vai para o GitHub). Resumo:
   Evolução para o Show Case: v1 93–97% (com 1 erro grave) → v2 98% em média → v2.1 100%.
 - **Telegram:** bot com long polling (`scripts/telegram_bot.py`), responde só ao meu
   `TELEGRAM_USER_ID`; mensagens processadas uma por vez (lock), na ordem em que chegam.
+- **Site, etapa 1:** a primeira versão (visual de caderno, lista de aulas e resumo de faltas no
+  topo) ficou sem cor e com informação demais no topo. **Refeita como agenda semanal no estilo do
+  Teams:** colunas = dias, linhas = horários, uma cor por disciplina; falta = bloco cheio com
+  etiqueta, aula cancelada = cinza listrado, prova = etiqueta amarela. Os detalhes (faltas,
+  limite, frequência, próximas provas) aparecem ao tocar na aula, num painel que também permite
+  marcar presença/falta, aula cancelada e teste. Toda alteração do site entra no mesmo log
+  (origem "site") e pode ser desfeita, inclusive as feitas pelo agente.
+- **HTMX incluído no projeto** (`app/web/static/htmx.min.js`), em vez de carregado de um CDN:
+  o site não depende de serviço externo para funcionar na demonstração.

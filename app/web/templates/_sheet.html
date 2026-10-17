@@ -1,0 +1,71 @@
+<div class="sheet-backdrop" onclick="if (event.target === this) this.remove()">
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="--c: {{ b.color }}">
+    <header class="sheet-head">
+      <div>
+        <p class="sheet-code">{{ b.code }}</p>
+        <h2 id="sheet-title">{{ course.name }}</h2>
+        <p class="sheet-when">{{ LONG_DAYS[b.day.weekday()] | capitalize }}, {{ b.day.day }} de {{ MONTHS[b.day.month - 1] }}, das {{ b.start[:2] }}h às {{ b.end[:2] }}h</p>
+      </div>
+      <button class="close" onclick="this.closest('.sheet-backdrop').remove()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="sheet-body">
+      <h3>Nesta aula</h3>
+      {% if b.cancelled %}
+        <p class="note">Aula marcada como cancelada. Ela não conta para a frequência.</p>
+      {% else %}
+        <div class="segmented" role="group" aria-label="Presença nesta aula">
+          <button class="{{ 'on' if b.attended }}"
+                  hx-post="/aulas/{{ b.course_id }}/{{ b.day.isoformat() }}/presenca?valor=1"
+                  hx-target="#sheet-root" hx-swap="innerHTML">Presente</button>
+          <button class="{{ 'on absent' if not b.attended }}"
+                  hx-post="/aulas/{{ b.course_id }}/{{ b.day.isoformat() }}/presenca?valor=0"
+                  hx-target="#sheet-root" hx-swap="innerHTML">Faltei</button>
+        </div>
+      {% endif %}
+      <div class="toggles">
+        <button class="chip {{ 'on' if b.cancelled }}"
+                hx-post="/aulas/{{ b.course_id }}/{{ b.day.isoformat() }}/cancelada"
+                hx-target="#sheet-root" hx-swap="innerHTML"
+                aria-pressed="{{ 'true' if b.cancelled else 'false' }}">Aula cancelada</button>
+        <button class="chip {{ 'on' if b.quiz }}"
+                hx-post="/aulas/{{ b.course_id }}/{{ b.day.isoformat() }}/teste"
+                hx-target="#sheet-root" hx-swap="innerHTML"
+                aria-pressed="{{ 'true' if b.quiz else 'false' }}">Dia de teste</button>
+      </div>
+      {% if b.exam %}<p class="exam-line">Dia da <strong>{{ b.exam }}</strong>.</p>{% endif %}
+
+      <h3>Na disciplina</h3>
+      {% if not summary.requires_attendance %}
+        <p class="stat"><strong>{{ summary.absences }}</strong> falta{{ 's' if summary.absences != 1 }}</p>
+        <p class="note">Esta disciplina não cobra frequência mínima.</p>
+      {% else %}
+        <p class="stat">
+          <strong>{{ summary.absences }}</strong> de {{ summary.max_absences }} faltas permitidas
+        </p>
+        <div class="meter {{ summary.status }}" aria-hidden="true">
+          <span style="width: {{ [100, summary.absences / (summary.max_absences or 1) * 100] | min }}%"></span>
+        </div>
+        <p class="note {{ summary.status }}">
+          {% if summary.status == 'reprovado_por_falta' %}Passou do limite de faltas.
+          {% elif summary.remaining_absences == 1 %}Você ainda pode faltar 1 vez.
+          {% else %}Você ainda pode faltar {{ summary.remaining_absences }} vezes.{% endif %}
+          {% if summary.frequency_to_date is not none %}
+            Frequência até hoje: {{ '%.1f' | format(summary.frequency_to_date * 100) | replace('.', ',') }}%.
+          {% endif %}
+        </p>
+      {% endif %}
+
+      <h3>Próximas provas</h3>
+      {% if upcoming %}
+        <ul class="exams">
+          {% for a in upcoming %}
+            <li><strong>{{ a.name }}</strong> {{ SHORT_DAYS[a.day.weekday()] }}, {{ a.day.day }}/{{ '%02d' % a.day.month }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="note">Nenhuma prova marcada.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>

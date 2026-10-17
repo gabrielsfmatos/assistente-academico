@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1D2A5B">
+  <title>{% block title %}Assistente acadêmico{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" defer></script>  {# htmx 2.0.4, incluído no projeto #}
+</head>
+<body>
+  {% block content %}{% endblock %}
+
+  <nav class="tabs" aria-label="Seções">
+    <a href="/" class="{{ 'on' if tab == 'semana' }}" {% if tab == 'semana' %}aria-current="page"{% endif %}>Semana</a>
+    <a href="#" class="soon" aria-disabled="true" title="Em breve">Provas</a>
+    <a href="#" class="soon" aria-disabled="true" title="Em breve">Histórico</a>
+  </nav>
+
+  <div id="sheet-root"></div>
+</body>
+</html>
