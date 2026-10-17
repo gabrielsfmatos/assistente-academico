@@ -11,7 +11,8 @@ DB_PATH = Path(__file__).resolve().parent.parent / "academico.db"
 
 
 def get_engine(url: str | None = None):
-    return create_engine(url or f"sqlite:///{DB_PATH}")
+    # check_same_thread=False: o bot do Telegram atende mensagens em outra thread.
+    return create_engine(url or f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 
 
 def init_db(engine) -> None:

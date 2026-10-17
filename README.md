@@ -2,7 +2,7 @@
 
 Sistema de gestão acadêmica (frequência, provas e CR) com um agente de IA no Telegram para consultas e atualizações em linguagem natural.
 
-> Em construção. Etapa atual: regras de negócio e conjunto de teste do agente.
+> Em construção. Etapa atual: agente no Telegram em uso real.
 
 ## Arquitetura
 
@@ -35,9 +35,19 @@ app/
     assessments.py       provas: datas, notas e avisos de data
     courses.py           disciplinas: busca, trancar, regras, média final
     changes.py           log de alterações e desfazer
+  agent/
+    tools.py             ferramentas que o LLM pode chamar (todas passam pelos serviços)
+    grade_text.py        trava: só grava a nota que o usuário realmente escreveu
+    prompt.py            instruções de sistema (regras de comportamento)
+    llm.py               adaptador do Gemini (trocar de provedor = trocar este arquivo)
+    agent.py             laço mensagem -> modelo -> ferramentas -> resposta
 scripts/
   import_xlsx.py         importa a planilha antiga e audita as fórmulas
   show_summary.py        mostra frequência e CR no terminal
+  check_gemini.py        testa a chave da API e lista os modelos
+  chat.py                conversa com o agente pelo terminal
+  eval_agent.py          roda os 29 casos e mede a taxa de acerto
+  telegram_bot.py        o agente no Telegram (responde só ao dono)
 tests/                   testes automatizados (pytest)
   agent_cases.yaml       29 frases de teste do agente com o resultado esperado
 ```
@@ -52,4 +62,9 @@ pip install -r requirements.txt
 python -m scripts.import_xlsx "data\Gestao_Faculdade.xlsx" --reset
 python -m scripts.show_summary
 python -m pytest
+
+# agente (precisa do .env com GEMINI_API_KEY)
+python -m scripts.chat
+python -m scripts.eval_agent --tag v1
+python -m scripts.telegram_bot   # precisa de TELEGRAM_BOT_TOKEN e TELEGRAM_USER_ID
 ```

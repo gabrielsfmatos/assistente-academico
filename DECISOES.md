@@ -58,3 +58,59 @@ Ver `data/relatorio_importacao.md` (não vai para o GitHub). Resumo:
 - **Quando o agente confirma antes de gravar:** registros claros (falta, nota, prova) são gravados
   direto, porque existe "desfazer"; pedem confirmação as alterações estruturais (trancar, regra de
   frequência, curso) e as correções em que o agente precisou deduzir algo.
+- **Agente v1 (arquitetura):**
+  - Eu executo as ferramentas (chamada automática do SDK desligada), para validar e registrar
+    tudo no log.
+  - Confirmação garantida por código, não só pelo prompt: trancar, mudar regra de frequência,
+    mudar curso e prova com data estranha viram uma "ação pendente", que só roda com
+    `confirmar_acao_pendente`. O modelo não consegue pular essa etapa.
+  - Ferramentas devolvem números já formatados com vírgula, para o modelo só copiar.
+  - O modelo do Gemini é configurável no `.env`; o adaptador fica isolado em `app/agent/llm.py`.
+  - Limite de 6 idas e voltas por mensagem, para o agente não entrar em laço.
+- **Avaliação:** `scripts/eval_agent.py` roda cada caso numa cópia limpa do banco e compara o
+  estado final com o esperado. O critério em texto livre pode ser avaliado por um "juiz" LLM
+  (`--judge`), opcional.
+
+## 17/10/2026
+
+- **Plano gratuito do Gemini insuficiente:** 20 chamadas/dia por modelo; a avaliação usa ~90.
+  Ativei o faturamento com **pré-pagamento de R$ 30 e recarga automática desligada** (o saldo é
+  um teto real de gastos). O crédito de US$ 300 do Google Cloud não cobre a API Gemini.
+- **Modelos:** `gemini-2.5-flash-lite` (sugerido antes) já estava descontinuado para contas novas;
+  troquei por `gemini-3.5-flash-lite` mudando só o `.env`.
+- **Resultados v1 (prompt v1, 29 casos):**
+
+  | Modelo | Acertos | Erros |
+  |---|---|---|
+  | gemini-3.8-flash | 27/29 (93%) | 2 conservadores: perguntou quando podia agir (casos 20 e 6) |
+  | gemini-3.5-flash-lite | 28/29 (97%) | 1 **grave**: gravou nota 8 a partir de "oitcx" (caso 24) |
+
+  Aprendizado: a taxa de acerto sozinha engana; um erro que grava dado errado é pior que uma
+  pergunta a mais. O relatório passou a separar **erros graves**.
+- **Mudanças da v2:**
+  1. Prompt: prova nova sem nome é criada direto com o próximo nome livre (P1, P2...), escolhido
+     pelo código; confirmação só para ALTERAR algo existente.
+  2. Prompt: toda data citada é conferida com `aulas_do_dia` (dia da semana, se há aula).
+  3. **Trava no código para notas:** as ferramentas de nota exigem a nota como o usuário
+     escreveu (`nota_texto`). O código converte o texto sozinho ("9,3", "oito", "nove e meio") e
+     recusa se não entender ou se o número for diferente. Nenhum modelo consegue gravar uma
+     nota adivinhada, independentemente do prompt.
+- **Resultados v2 (prompt v2, 29 casos):**
+
+  | Modelo | Acertos | Erros graves | Observação |
+  |---|---|---|---|
+  | gemini-3.5-flash-lite | 29/29 (100%) | 0 | trava de notas recusou "oitcx" e o agente perguntou |
+  | gemini-3.8-flash | 28/29 (97%) | 0 | caso 25: perguntou a disciplina, mas não conferiu a data (amanhã é sexta, sem aula) |
+
+- **Modelo escolhido para o dia a dia: `gemini-3.5-flash-lite`.** Melhor resultado, zero erros
+  graves e o mais barato. O 3.8-flash fica como alternativa no `.env`.
+- **Segunda rodada da v2 no lite: 28/29**, 0 erros graves. Caso 18: o agente perguntou "P1 ou
+  P2?" (em vez de propor a P2) e vazou um trecho das instruções na resposta. Variação natural
+  entre rodadas: passo a reportar a **média de várias rodadas** (v2 lite: 29 e 28 → 98%).
+- **v2.1:** em ambiguidade, propor a opção mais provável pelas datas e perguntar com sim/não;
+  nunca citar as regras internas na resposta. Depois disso, paro de ajustar o prompt pelo
+  conjunto de teste e passo a aprender com o uso real (Telegram).
+- **Resultados v2.1 no lite: 29/29 e 29/29 (100% nas duas rodadas), 0 erros graves.**
+  Evolução para o Show Case: v1 93–97% (com 1 erro grave) → v2 98% em média → v2.1 100%.
+- **Telegram:** bot com long polling (`scripts/telegram_bot.py`), responde só ao meu
+  `TELEGRAM_USER_ID`; mensagens processadas uma por vez (lock), na ordem em que chegam.

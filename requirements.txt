@@ -1,4 +1,7 @@
 sqlmodel>=0.0.22
 openpyxl>=3.1
 pyyaml>=6
+google-genai>=1.0
+python-dotenv>=1.0
+python-telegram-bot>=21
 pytest>=8
