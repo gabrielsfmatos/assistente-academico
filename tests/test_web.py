@@ -248,3 +248,10 @@ def test_too_many_wrong_passwords_block_login(engine, monkeypatch):
 def test_security_headers(client):
     r = client.get("/")
     assert r.headers["x-frame-options"] == "DENY"
+
+
+def test_icons_are_public(locked):
+    html = locked.get("/login").text
+    assert 'rel="apple-touch-icon"' in html and 'rel="manifest"' in html
+    for path in ["/static/icons/icon.svg", "/static/icons/apple-touch-icon.png", "/static/manifest.webmanifest"]:
+        assert locked.get(path).status_code == 200  # aparecem antes do login (tela inicial do celular)
