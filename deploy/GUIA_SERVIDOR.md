@@ -1,10 +1,10 @@
 # Guia do servidor (Oracle Cloud + Tailscale)
 
 Coloca o bot e o site no ar 24 horas, numa máquina gratuita da Oracle.
-O site fica acessível só pelos seus aparelhos (Tailscale) e com senha.
+O site fica acessível de qualquer navegador (Tailscale Funnel, com HTTPS) e protegido por senha.
 
 ```
-celular / PC ──(Tailscale, HTTPS)──> servidor Oracle
+qualquer navegador ──(HTTPS, Tailscale Funnel)──> servidor Oracle
                                         ├── bot do Telegram  (busca mensagens no Telegram)
                                         ├── site             (127.0.0.1:8000, só a própria máquina)
                                         ├── academico.db     (banco, disco permanente)
@@ -15,7 +15,9 @@ Tempo estimado: 1 a 2 horas. Comandos com `PS>` são no PowerShell do seu PC;
 com `$` são no servidor (depois do `ssh`).
 
 **Segurança, sempre:** nunca mande para ninguém (nem no chat) a chave `oracle.key`,
-o `.env` ou a senha do site. Nunca abra a porta 8000 na Oracle: o site só precisa do Tailscale.
+o `.env` ou a senha do site. Nunca abra a porta 8000 na Oracle: o site chega à internet pelo
+Tailscale Funnel, que não precisa de nenhuma porta aberta. Como o site é público, a senha do site
+deve ter **12 caracteres ou mais**.
 
 ---
 
@@ -103,9 +105,10 @@ backup diário. No fim, os dois serviços devem aparecer como `active (running)`
 **Teste:** mande "quantas faltas tenho em AP?" para o bot no Telegram. Se responder, o bot já
 está rodando no servidor (pode desligar o PC).
 
-## 6. Site no celular (Tailscale)
+## 6. Site acessível de qualquer navegador (Tailscale Funnel)
 
-O Tailscale cria uma rede privada entre os seus aparelhos. O site não fica exposto na internet.
+O Tailscale leva o site até a internet com HTTPS e um endereço fixo, sem domínio próprio e sem
+abrir portas na Oracle. Quem tem o endereço vê a tela de login; os dados só com a senha.
 
 No servidor:
 
@@ -117,15 +120,20 @@ $ sudo tailscale up
 Abra o link que aparecer e entre com a sua conta (Google serve). Depois:
 
 ```bash
-$ sudo tailscale serve --bg 8000
+$ sudo tailscale funnel --bg 8000
 ```
 
-Se ele pedir para ativar HTTPS, abra o link indicado e ative. O comando mostra o endereço do site,
-algo como `https://academico.tail1234.ts.net`.
+Se ele pedir para ativar HTTPS ou o Funnel, abra o link indicado e ative. O comando mostra o
+endereço do site, algo como `https://academico.tail1234.ts.net`. Ele abre em qualquer navegador,
+sem app. Confira com `sudo tailscale funnel status` (deve dizer "Funnel on").
 
-No celular: instale o app **Tailscale**, entre com a **mesma conta** e ative a conexão.
-Abra o endereço no navegador, entre com a senha e use "Adicionar à tela inicial".
-(No PC, instale o Tailscale também se quiser abrir o site por ele.)
+- **Celular:** abra o endereço, entre marcando "Manter conectado" e use "Adicionar à Tela de Início".
+- **Computador de outra pessoa:** entre **sem** marcar "Manter conectado" e use "Sair deste
+  aparelho" no fim do Histórico. O login também some ao fechar o navegador.
+- **Segurança extra:** depois de 5 senhas erradas em 15 minutos, o login fica bloqueado por
+  15 minutos.
+- **Voltar a ser só privado** (só aparelhos com o app Tailscale): `sudo tailscale funnel --bg off`
+  e depois `sudo tailscale serve --bg 8000`.
 
 **Teste do backup:**
 

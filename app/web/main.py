@@ -120,12 +120,23 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
 
     if password is None:
         log.warning("SITE_PASSWORD não definida: o site está aberto, sem senha.")
+    elif len(password) < auth.MIN_PASSWORD_LENGTH:
+        log.warning("SITE_PASSWORD curta: use pelo menos %d caracteres.", auth.MIN_PASSWORD_LENGTH)
+    limiter = auth.LoginLimiter()
 
     def get_db():
         with Session(engine) as db:
             yield db
 
     # ------------------------------------------------------------ senha
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Frame-Options", "DENY")  # ninguém embute o site em outra página
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        return response
 
     @app.middleware("http")
     async def require_login(request: Request, call_next):
@@ -146,22 +157,38 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
         return templates.TemplateResponse(request, "login.html", {"prox": auth.safe_next(prox)})
 
     @app.post("/login")
-    async def login(request: Request, senha: str = Form(""), prox: str = Form("/")):
+    async def login(
+        request: Request,
+        senha: str = Form(""),
+        prox: str = Form("/"),
+        lembrar: Optional[str] = Form(None),
+    ):
         if password is None:
             return RedirectResponse("/", status_code=303)
+        key = auth.client_key(request.headers, request.client.host if request.client else None)
+        wait = limiter.retry_after(key)
+        if wait:
+            minutes = max(1, round(wait / 60))
+            return templates.TemplateResponse(
+                request, "login.html",
+                {"prox": auth.safe_next(prox), "bloqueado": minutes}, status_code=429,
+            )
         if not auth.check_password(senha, password):
+            limiter.fail(key)
             await asyncio.sleep(1)  # atrasa quem tenta adivinhar a senha
             return templates.TemplateResponse(
                 request, "login.html", {"prox": auth.safe_next(prox), "erro": True}, status_code=401
             )
+        limiter.reset(key)
         response = RedirectResponse(auth.safe_next(prox), status_code=303)
         response.set_cookie(
             auth.COOKIE_NAME,
             auth.session_token(password),
-            max_age=auth.COOKIE_MAX_AGE,
+            # Sem "manter conectado", o cookie some ao fechar o navegador (computador de outra pessoa).
+            max_age=auth.COOKIE_MAX_AGE if lembrar else None,
             httponly=True,
             samesite="lax",
-            secure=request.url.scheme == "https",
+            secure=auth.is_https(request.url.scheme, request.headers),
         )
         return response
 

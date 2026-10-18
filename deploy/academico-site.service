@@ -1,5 +1,5 @@
-# Site em 127.0.0.1:8000: só a própria máquina acessa. Quem leva o site até o
-# celular é o Tailscale ("tailscale serve"), com HTTPS e só para os seus aparelhos.
+# Site em 127.0.0.1:8000: só a própria máquina acessa. Quem leva o site até a
+# internet é o Tailscale Funnel ("tailscale funnel"), com HTTPS, sem porta aberta na Oracle.
 [Unit]
 Description=Gerenciador Academico - site
 After=network-online.target

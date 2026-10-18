@@ -136,7 +136,7 @@ button { font: inherit; }
 .top-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .page-title { margin: 0; font: 800 1.6rem/1.1 var(--display); letter-spacing: -0.015em; }
 .page-title .year { font: 500 1rem var(--texto); opacity: .7; letter-spacing: 0; }
-.top-sub { margin: .25rem 0 0; font-size: .8rem; color: rgba(238, 242, 255, .78); }
+.top-sub { margin: .25rem 0 0; font-size: .9rem; color: rgba(238, 242, 255, .78); }
 
 .nav { display: flex; align-items: center; gap: .25rem; flex: none; }
 .arrow {
@@ -534,6 +534,9 @@ body.is-login { padding-bottom: 0; background: var(--topo); }
 }
 .login-card h1 { margin: 0; font: 800 1.5rem var(--display); }
 .login-card .note, .login-card .flash { margin: 0; }
+.remember { display: flex; gap: .6rem; align-items: flex-start; font-size: .92rem; cursor: pointer; }
+.remember input { width: 1.2rem; height: 1.2rem; margin-top: .1rem; accent-color: var(--topo); flex: none; }
+.remember small { display: block; color: var(--suave); }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(1.5rem); opacity: 0; } }

@@ -6,13 +6,18 @@
 <main class="login">
   <form method="post" action="/login" class="login-card">
     <h1>Entrar</h1>
-    <p class="note">Digite a senha para continuar. Este aparelho fica conectado por 90 dias.</p>
+    <p class="note">Digite a senha para continuar.</p>
     <input type="hidden" name="prox" value="{{ prox }}">
     <label class="field">
       <span>Senha</span>
       <input type="password" name="senha" autocomplete="current-password" required autofocus>
     </label>
+    <label class="remember">
+      <input type="checkbox" name="lembrar" value="1">
+      <span>Manter conectado neste aparelho por 90 dias <small>(não marque em computador de outra pessoa)</small></span>
+    </label>
     {% if erro %}<p class="flash flash-erro" role="alert">Senha incorreta.</p>{% endif %}
+    {% if bloqueado %}<p class="flash flash-erro" role="alert">Muitas tentativas erradas. Tente de novo em {{ bloqueado }} min.</p>{% endif %}
     <button type="submit" class="btn">Entrar</button>
   </form>
 </main>

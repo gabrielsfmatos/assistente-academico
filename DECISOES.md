@@ -156,3 +156,15 @@ e abrir o Telegram). O bot já estava rodando, como estaria em uso real.
 Leitura honesta: consultas simples já eram rápidas na planilha (empate). O ganho está nas
 tarefas que exigem chegar à ferramenta ou fazer contas (registro e simulações). Além do tempo,
 o sistema corrigiu as 7 inconsistências de regra encontradas na planilha.
+
+## 18/10/2026
+
+- **Servidor:** a máquina Ampere A1 (gratuita) estava sem vaga em São Paulo ("Out of host
+  capacity"). Usei a `VM.Standard.E2.1.Micro` (AMD, 1 GB), também gratuita. Bot, site e backup diário rodam como serviços do systemd.
+- **Acesso ao site de qualquer computador:** Tailscale Funnel (HTTPS público, sem domínio e sem
+  porta aberta na Oracle), em vez de rede privada. Como o site ficou público:
+  - login com limite de tentativas (5 erros em 15 min bloqueiam aquele endereço);
+  - "Manter conectado" opcional: sem marcar, o login some ao fechar o navegador;
+  - cookie só por HTTPS e cabeçalhos de segurança (o site não pode ser embutido em outra página).
+- **Vários usuários (amigos):** decidi não fazer agora. Exigiria dono em todas as tabelas e
+  consultas, contas individuais, tela de cadastro de disciplinas e regras por faculdade.

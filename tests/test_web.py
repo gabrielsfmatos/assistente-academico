@@ -214,3 +214,37 @@ def test_login_page_has_app_header(locked):
 def test_save_shows_confirmation(client):
     r = client.post("/provas", data={"disciplina": 3, "dia": "2026-10-29"})
     assert 'class="toast"' in r.text and "P2 de AP salva" in r.text
+
+
+def test_login_without_remember_is_session_cookie(locked):
+    r = locked.post("/login", data={"senha": "segredo", "prox": "/"}, follow_redirects=False)
+    assert "Max-Age" not in r.headers["set-cookie"]
+    r = locked.post("/login", data={"senha": "segredo", "prox": "/", "lembrar": "1"}, follow_redirects=False)
+    assert "Max-Age=7776000" in r.headers["set-cookie"]
+
+
+def test_cookie_is_secure_behind_tailscale(locked):
+    r = locked.post(
+        "/login", data={"senha": "segredo", "prox": "/"},
+        headers={"host": "academico.tail123.ts.net"}, follow_redirects=False,
+    )
+    assert "secure" in r.headers["set-cookie"].lower()
+
+
+def test_too_many_wrong_passwords_block_login(engine, monkeypatch):
+    import app.web.main as web
+
+    async def no_wait(seconds):
+        return None
+
+    monkeypatch.setattr(web.asyncio, "sleep", no_wait)  # o teste não espera 1 s por tentativa
+    c = TestClient(create_app(engine=engine, today_fn=lambda: TODAY, password="segredo"))
+    for _ in range(5):
+        assert c.post("/login", data={"senha": "errada"}).status_code == 401
+    r = c.post("/login", data={"senha": "segredo"}, follow_redirects=False)
+    assert r.status_code == 429 and "Muitas tentativas" in r.text  # bloqueado mesmo com a senha certa
+
+
+def test_security_headers(client):
+    r = client.get("/")
+    assert r.headers["x-frame-options"] == "DENY"
