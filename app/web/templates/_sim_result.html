@@ -1,6 +1,6 @@
 {% if error %}
   <p class="flash flash-erro">{{ error }}</p>
-{% elif filled %}
+{% elif complete and filled %}
   <div class="sim-out">
     <div>
       <span class="sim-label">CR acumulado</span>
@@ -15,7 +15,4 @@
       <strong>{{ term.cr | br }}</strong>
     </div>
   </div>
-  {% if total.missing %}
-    <p class="note">Sem nota na simulação (fora da conta): {{ total.missing | join(', ') }}.</p>
-  {% endif %}
 {% endif %}

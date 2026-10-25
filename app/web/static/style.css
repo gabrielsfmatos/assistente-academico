@@ -139,6 +139,30 @@ button { font: inherit; }
 .top-sub { margin: .25rem 0 0; font-size: .9rem; color: rgba(238, 242, 255, .78); }
 
 .nav { display: flex; align-items: center; gap: .25rem; flex: none; }
+
+/* botão de calendário ao lado do mês: o campo de data fica invisível por cima do ícone */
+.month-pick { min-width: 0; }
+.month-pick .year { white-space: nowrap; }
+.cal-btn {
+  position: relative;
+  display: inline-grid; place-items: center; vertical-align: middle;
+  margin-left: .15rem;
+  width: 2.5rem; height: 2.5rem;
+  border-radius: 50%;
+  color: var(--topo-texto);
+  cursor: pointer;
+}
+.cal-btn:hover, .cal-btn:focus-within { background: rgba(255, 255, 255, .12); }
+.cal-btn svg { width: 1.35rem; height: 1.35rem; pointer-events: none; }
+.cal-btn input {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; min-height: 0;
+  margin: 0; padding: 0; border: 0;
+  opacity: 0; cursor: pointer;
+  font-size: 16px; /* evita zoom no iPhone */
+}
+.cal-btn input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; cursor: pointer; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .arrow {
   display: grid; place-items: center;
   width: 2.75rem; height: 2.75rem;
@@ -389,6 +413,15 @@ button { font: inherit; }
 .sim-out strong { font: 800 1.6rem var(--display); color: var(--topo); }
 .sim-diff { font: 700 .85rem var(--texto); color: #1E7B4A; }
 .sim-diff.down { color: var(--falta); }
+.sim-wait { margin-top: .9rem; text-align: center; }
+.link-clear {
+  display: block; margin: .9rem auto 0;
+  min-height: 2.5rem; padding: 0 1rem;
+  border: 1.5px solid #D5DCEA; border-radius: 999px;
+  background: var(--superficie); color: var(--suave);
+  font: 700 .88rem var(--texto); cursor: pointer;
+}
+.link-clear:hover { border-color: #B9C3D8; color: var(--tinta); }
 
 /* ---------- formulários ---------- */
 
@@ -546,6 +579,12 @@ body.is-login { padding-bottom: 0; background: var(--topo); }
 @media (prefers-reduced-motion: reduce) {
   .sheet-backdrop, .sheet, .toast { animation: none; }
   .block { transition: none; }
+}
+
+@media (max-width: 25rem) {
+  .top .page-title { font-size: 1.4rem; }
+  .today-btn { padding: 0 .7rem; }
+  .arrow { width: 2.4rem; }
 }
 
 @media (min-width: 40rem) {

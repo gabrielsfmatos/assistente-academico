@@ -4,9 +4,14 @@
 
 <header class="top">
   <div class="top-inner">
-    <div>
-      <h1 class="page-title">{{ MONTHS[days[0].month - 1] | capitalize }}{% if days[-1].month != days[0].month %} / {{ MONTHS[days[-1].month - 1] }}{% endif %} <span class="year">{{ days[-1].year }}</span></h1>
-      <p class="top-sub">{{ days[0].day }}{% if days[-1].month != days[0].month %} de {{ SHORT_MONTHS[days[0].month - 1] }}{% endif %} a {{ days[-1].day }} de {{ SHORT_MONTHS[days[-1].month - 1] }}{% if is_current_week %} · Semana atual{% endif %}</p>
+    <div class="month-pick">
+      <h1 class="page-title">{{ MONTHS[days[0].month - 1] | capitalize }}{% if days[-1].month != days[0].month %} / {{ MONTHS[days[-1].month - 1] }}{% endif %} <span class="year">{{ days[-1].year }}</span>
+        {# Calendário nativo do aparelho: escolher qualquer dia abre a semana desse dia. #}
+        <label class="cal-btn" title="Escolher uma data">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm-2 7h14v10H5V9Zm2 2v2h2v-2H7Zm4 0v2h2v-2h-2Zm4 0v2h2v-2h-2Zm-8 4v2h2v-2H7Zm4 0v2h2v-2h-2Z" fill="currentColor"/></svg>
+          <input type="date" id="week-picker" value="{{ days[0].isoformat() }}" aria-label="Ir para uma data">
+        </label>
+      </h1>
     </div>
     <div class="nav">
       <a class="today-btn {{ 'is-here' if is_current_week }}" href="/" {% if is_current_week %}aria-disabled="true" tabindex="-1"{% endif %}>Hoje</a>
@@ -47,8 +52,17 @@
       {% endfor %}
     {% endfor %}
   </div>
-  <p class="hint">Selecione uma aula para marcar presença, falta ou aula cancelada.</p>
   {% endif %}
 </main>
 
+<script>
+  (function () {
+    const picker = document.getElementById("week-picker");
+    picker.addEventListener("click", () => { try { picker.showPicker(); } catch (e) {} });
+    picker.addEventListener("change", () => {
+      if (picker.value) location.href = "/?semana=" + picker.value;
+    });
+  })();
+</script>
+  
 {% endblock %}

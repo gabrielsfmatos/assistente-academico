@@ -4,11 +4,10 @@
 <header class="top">
   <div class="top-inner top-cr">
     <div>
-      <h1 class="page-title">Histórico</h1>
-      <p class="top-sub">{{ terms | length }} períodos · {{ total_credits | br }} créditos no CR</p>
+      <h1 class="page-title">Histórico Escolar</h1> 
     </div>
     <div class="cr-box">
-      <span>CR acumulado</span>
+      <span>CR Geral</span>
       <strong>{{ cr | br }}</strong>
     </div>
   </div>
@@ -20,8 +19,8 @@
   {% if sim_courses %}
   <section class="card sim">
     <h2 class="section-title">Simular o CR</h2>
-    <p class="note">Digite as médias que você espera neste período. Nada é salvo.</p>
-    <form hx-post="/historico/simular" hx-target="#sim-result" hx-trigger="input delay:400ms, submit">
+    <p class="note">Preencha as notas em todas as disciplinas para simular o CR do período e o CR Geral.</p>
+    <form id="sim-form" hx-post="/historico/simular" hx-target="#sim-result" hx-trigger="input delay:400ms, submit, restore">
       <div class="sim-grid">
         {% for c in sim_courses %}
           <label>
@@ -32,7 +31,34 @@
       </div>
     </form>
     <div id="sim-result" aria-live="polite"></div>
+    <button type="button" class="link-clear" id="sim-clear">Limpar simulação</button>
   </section>
+  <script>
+    // Guarda as notas simuladas no navegador (localStorage), para não sumirem ao trocar de aba.
+    (function () {
+      const KEY = "simulacao-cr";
+      const form = document.getElementById("sim-form");
+      const inputs = form.querySelectorAll("input[name^='nota_']");
+      const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+      const save = () => {
+        const data = {};
+        inputs.forEach((i) => { if (i.value.trim()) data[i.name] = i.value.trim(); });
+        try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+      };
+      const saved = load();
+      let restored = false;
+      inputs.forEach((i) => { if (saved[i.name]) { i.value = saved[i.name]; restored = true; } });
+      form.addEventListener("input", save);
+      document.getElementById("sim-clear").addEventListener("click", () => {
+        inputs.forEach((i) => { i.value = ""; });
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        document.getElementById("sim-result").innerHTML = "";
+        inputs[0] && inputs[0].focus();
+      });
+      // Recalcula o resultado com as notas guardadas depois que o HTMX preparar o formulário.
+      if (restored) window.addEventListener("load", () => htmx.trigger(form, "restore"));
+    })();
+  </script>
   {% endif %}
 
   {% for t in terms %}

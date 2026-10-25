@@ -142,11 +142,15 @@ def test_history_shows_cr_and_terms(client):
     assert "6º período" in html and "atual" in html
 
 
-def test_simulation_does_not_save(client, db):
+def test_simulation_needs_all_grades(client):
     html = client.post("/historico/simular", data={"nota_1": "7", "nota_3": "8,5"}).text
-    assert "CR acumulado" in html
-    assert "8,5000" in html  # (10*4 + 7*4 + 8,5*4) / 12
-    assert "Empreendedorismo" in html  # avisa a disciplina que ficou fora da conta
+    assert "CR acumulado" not in html and html.strip() == ""  # falta EI: não calcula nem mostra nada
+
+
+def test_simulation_does_not_save(client, db):
+    html = client.post("/historico/simular", data={"nota_1": "7", "nota_2": "9", "nota_3": "8,5"}).text
+    assert "8,6250" in html  # (10*4 + 7*4 + 9*4 + 8,5*4) / 16
+    assert "8,16" in html  # CR do período: (7 + 9 + 8,5) / 3, truncado
     assert db.get(Course, 1).final_grade is None
 
 
@@ -255,3 +259,37 @@ def test_icons_are_public(locked):
     assert 'rel="apple-touch-icon"' in html and 'rel="manifest"' in html
     for path in ["/static/icons/icon.svg", "/static/icons/apple-touch-icon.png", "/static/manifest.webmanifest"]:
         assert locked.get(path).status_code == 200  # aparecem antes do login (tela inicial do celular)
+
+
+def test_pages_are_not_cached(client):
+    assert client.get("/").headers["cache-control"] == "no-store"
+    assert "no-store" not in client.get("/static/style.css").headers.get("cache-control", "")
+
+
+def test_home_shows_current_week(engine):
+    c = TestClient(create_app(engine=engine, today_fn=lambda: date(2026, 10, 24)))  # sábado
+    html = c.get("/").text
+    assert 'id="week-picker" value="2026-10-19"' in html  # semana atual (segunda), não uma guardada
+
+
+def test_simulation_has_memory_and_clear_button(client):
+    html = client.get("/historico").text
+    assert 'id="sim-clear"' in html and "localStorage" in html
+
+
+def test_week_runs_sunday_to_saturday(engine):
+    sunday = TestClient(create_app(engine=engine, today_fn=lambda: date(2026, 10, 25)))
+    week = 'id="week-picker" value="2026-10-26"'  # a semana mostrada começa na segunda 26/10
+    assert week in sunday.get("/").text  # domingo já mostra a semana que começa
+    monday = TestClient(create_app(engine=engine, today_fn=lambda: date(2026, 10, 26)))
+    assert week in monday.get("/").text
+    assert week in monday.get("/?semana=2026-10-28").text  # qualquer dia da semana
+
+
+def test_calendar_picker_jumps_to_any_week(client):
+    html = client.get("/?semana=2026-12-09").text  # quarta de dezembro, vindo do calendário
+    assert 'id="week-picker" value="2026-12-07"' in html and "Dezembro" in html
+
+
+def test_css_url_has_version(client):
+    assert '/static/style.css?v=' in client.get("/").text  # muda quando o CSS muda

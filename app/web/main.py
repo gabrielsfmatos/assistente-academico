@@ -96,10 +96,21 @@ templates.env.globals.update(
     STATUS_LABELS=STATUS_LABELS,
 )
 templates.env.filters["br"] = br
+# Versão dos arquivos de estilo/script no endereço (style.css?v=...): quando o arquivo muda,
+# o endereço muda e o navegador baixa o novo, em vez de usar a cópia antiga guardada.
+templates.env.globals["ASSET_V"] = str(
+    max(int((WEB_DIR / "static" / f).stat().st_mtime) for f in ("style.css", "htmx.min.js"))
+)
 
 
-def monday_of(day: date) -> date:
-    return day - timedelta(days=day.weekday())
+def week_monday(day: date) -> date:
+    """Segunda-feira da semana de `day`, com a semana de domingo a sábado.
+
+    Domingo já pertence à semana que começa nele, então no domingo o site mostra
+    a semana seguinte (segunda a sexta); de segunda a sábado, a semana corrente.
+    """
+    sunday = day - timedelta(days=(day.weekday() + 1) % 7)
+    return sunday + timedelta(days=1)
 
 
 def back_to(
@@ -136,6 +147,10 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
         response.headers.setdefault("X-Frame-Options", "DENY")  # ninguém embute o site em outra página
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
+        # Páginas sempre buscadas de novo no servidor: sem isso, o celular pode reabrir uma cópia
+        # antiga (ex.: a semana de quando o atalho foi aberto pela última vez).
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-store"
         return response
 
     @app.middleware("http")
@@ -275,7 +290,7 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
     @app.get("/", response_class=HTMLResponse)
     def week_page(request: Request, semana: Optional[date] = None, db: Session = Depends(get_db)):
         today = today_fn()
-        start = monday_of(semana or today)
+        start = week_monday(semana or today)
         days = [start + timedelta(days=i) for i in range(5)]
         grid: dict[tuple[date, str], list[dict]] = {}
         for cs in attendance_svc.sessions_between(db, days[0], days[-1]):
@@ -289,7 +304,7 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
             grid=grid,
             prev_week=start - timedelta(days=7),
             next_week=start + timedelta(days=7),
-            is_current_week=start == monday_of(today),
+            is_current_week=start == week_monday(today),
         )
 
     @app.get("/faltas")
@@ -480,7 +495,8 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
         form = await request.form()
         hypothetical: dict[int, float] = {}
         error = None
-        for c in simulation_inputs(db):
+        courses = simulation_inputs(db)
+        for c in courses:
             try:
                 grade = parse_grade(str(form.get(f"nota_{c.id}", "")))
             except ValueError as exc:
@@ -488,8 +504,10 @@ def create_app(engine=None, today_fn=date.today, password: Optional[str] = None)
                 break
             if grade is not None:
                 hypothetical[c.id] = grade
-        ctx: dict = {"error": error, "filled": len(hypothetical)}
-        if not error and hypothetical:
+        # Só calcula com TODAS as médias preenchidas: um CR parcial engana mais do que ajuda.
+        complete = len(hypothetical) == len(courses)
+        ctx: dict = {"error": error, "filled": len(hypothetical), "complete": complete}
+        if not error and complete and hypothetical:
             ctx["total"] = grades_svc.simulate_cr(db, hypothetical, scope="acumulado")
             ctx["term"] = grades_svc.simulate_cr(db, hypothetical, scope="periodo")
             ctx["current"] = grades_svc.current_cr(db)

@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
-  <script src="/static/htmx.min.js" defer></script>  {# htmx 2.0.4, incluído no projeto #}
+  <link rel="stylesheet" href="/static/style.css?v={{ ASSET_V }}">
+  <script src="/static/htmx.min.js?v={{ ASSET_V }}" defer></script>  {# htmx 2.0.4, incluído no projeto #}
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#conteudo">Pular para o conteúdo</a>
